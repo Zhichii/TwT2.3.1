@@ -1,0 +1,688 @@
+{
+    "_comment": "Model capability templates. Applied when adding models to providers.",
+    "templates": [
+        {
+            "id": "deepseek-v3",
+            "name": "DeepSeek V3",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "deepseek-r1",
+            "name": "DeepSeek R1",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 16384,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "deepseek-v3.1",
+            "name": "DeepSeek V3.1",
+            "support_thinking": true,
+            "support_thinking_control": true,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 16384,
+            "default_temperature": null,
+            "thinking_stages": ["none", "high", "max"]
+        },
+        {
+            "id": "deepseek-v4",
+            "name": "DeepSeek V4",
+            "support_thinking": true,
+            "support_thinking_control": true,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 393216,
+            "default_temperature": null,
+            "thinking_stages": ["none", "high", "max"]
+        },
+        {
+            "id": "deepseek-v2.5",
+            "name": "DeepSeek V2.5",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "kimi-k2.5",
+            "name": "Kimi K2.5",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "kimi-k2.6",
+            "name": "Kimi K2.6",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "kimi-k2",
+            "name": "Kimi K2",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 131072,
+            "default_temperature": null
+        },
+        {
+            "id": "kimi-k2-thinking",
+            "name": "Kimi K2 Thinking",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 131072,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "moonshot-v1-vision",
+            "name": "Moonshot v1 Vision",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 131072,
+            "default_temperature": null
+        },
+        {
+            "id": "qwen3",
+            "name": "Qwen3",
+            "support_thinking": true,
+            "support_thinking_control": true,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 65536,
+            "default_temperature": null,
+            "thinking_stages": ["none", "enabled", "high"]
+        },
+        {
+            "id": "moonshot-v1",
+            "name": "Moonshot v1",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "qwen-max",
+            "name": "Qwen Max",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "qwen-plus",
+            "name": "Qwen Plus",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 32768,
+            "default_temperature": null
+        },
+        {
+            "id": "qwen-turbo",
+            "name": "Qwen Turbo",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "qwen2.5-72b",
+            "name": "Qwen 2.5 72B",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "qwen2.5-32b",
+            "name": "Qwen 2.5 32B",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "qwen2.5-14b",
+            "name": "Qwen 2.5 14B",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "qwen2.5-7b",
+            "name": "Qwen 2.5 7B",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "qvq-72b",
+            "name": "QVQ 72B",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": false,
+            "default_max_tokens": 4096,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "qwen-vl-max",
+            "name": "Qwen VL Max",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": false,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "qwen-vl-plus",
+            "name": "Qwen VL Plus",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": false,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "gpt-4o",
+            "name": "GPT-4o",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 16384,
+            "default_temperature": null
+        },
+        {
+            "id": "gpt-4o-mini",
+            "name": "GPT-4o Mini",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 16384,
+            "default_temperature": null
+        },
+        {
+            "id": "gpt-4-turbo",
+            "name": "GPT-4 Turbo",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "gpt-4",
+            "name": "GPT-4",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "gpt-3.5-turbo",
+            "name": "GPT-3.5 Turbo",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "o1",
+            "name": "o1",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 32768,
+            "default_temperature": 1.0,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "o1-mini",
+            "name": "o1 Mini",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 16384,
+            "default_temperature": 1.0,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "o3-mini",
+            "name": "o3 Mini",
+            "support_thinking": true,
+            "support_thinking_control": true,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 16384,
+            "default_temperature": 1.0,
+            "thinking_stages": ["none", "medium", "high"]
+        },
+        {
+            "id": "claude-sonnet-4",
+            "name": "Claude Sonnet 4",
+            "support_thinking": true,
+            "support_thinking_control": true,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["none", "enabled"]
+        },
+        {
+            "id": "claude-opus-4",
+            "name": "Claude Opus 4",
+            "support_thinking": true,
+            "support_thinking_control": true,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["none", "enabled"]
+        },
+        {
+            "id": "claude-haiku-4",
+            "name": "Claude Haiku 4",
+            "support_thinking": true,
+            "support_thinking_control": true,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["none", "enabled"]
+        },
+        {
+            "id": "claude-3.5-sonnet",
+            "name": "Claude 3.5 Sonnet",
+            "support_thinking": true,
+            "support_thinking_control": true,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["none", "enabled"]
+        },
+        {
+            "id": "claude-3-opus",
+            "name": "Claude 3 Opus",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "claude-3-haiku",
+            "name": "Claude 3 Haiku",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "gemini-2.0-flash",
+            "name": "Gemini 2.0 Flash",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "gemini-2.0-pro",
+            "name": "Gemini 2.0 Pro",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "gemini-2.5-pro",
+            "name": "Gemini 2.5 Pro",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "gemini-1.5-pro",
+            "name": "Gemini 1.5 Pro",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "gemini-1.5-flash",
+            "name": "Gemini 1.5 Flash",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "step-2",
+            "name": "Step-2",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "step-1",
+            "name": "Step-1",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "step-1-flash",
+            "name": "Step-1 Flash",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "llama-3-70b",
+            "name": "Llama 3 70B",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "llama-3-8b",
+            "name": "Llama 3 8B",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "mixtral-8x7b",
+            "name": "Mixtral 8x7B",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 32768,
+            "default_temperature": null
+        },
+        {
+            "id": "deepseek-r1-distill",
+            "name": "DeepSeek R1 Distill",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 4096,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "glm-4-9b",
+            "name": "GLM-4 9B",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "glm-4-plus",
+            "name": "GLM-4 Plus",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "glm-4-air",
+            "name": "GLM-4 Air",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "glm-4-flash",
+            "name": "GLM-4 Flash",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "sonar",
+            "name": "Sonar",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "sonar-deep",
+            "name": "Sonar Deep Research",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "grok-2",
+            "name": "Grok 2",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "grok-2-mini",
+            "name": "Grok 2 Mini",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        },
+        {
+            "id": "grok-3",
+            "name": "Grok 3",
+            "support_thinking": true,
+            "support_thinking_control": true,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 131072,
+            "default_temperature": null,
+            "thinking_stages": ["none", "enabled", "high"]
+        },
+        {
+            "id": "grok-3-mini",
+            "name": "Grok 3 Mini",
+            "support_thinking": true,
+            "support_thinking_control": true,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 131072,
+            "default_temperature": null,
+            "thinking_stages": ["none", "enabled", "high"]
+        },
+        {
+            "id": "mistral-large",
+            "name": "Mistral Large",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": true,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "mistral-small",
+            "name": "Mistral Small",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "codestral",
+            "name": "Codestral",
+            "support_thinking": true,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null,
+            "thinking_stages": ["enabled"]
+        },
+        {
+            "id": "ministral-8b",
+            "name": "Ministral 8B",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "yi-lightning",
+            "name": "Yi Lightning",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "yi-large",
+            "name": "Yi Large",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": true,
+            "default_max_tokens": 8192,
+            "default_temperature": null
+        },
+        {
+            "id": "local",
+            "name": "Local Model",
+            "support_thinking": false,
+            "support_thinking_control": false,
+            "support_vision": false,
+            "support_tools": false,
+            "default_max_tokens": 4096,
+            "default_temperature": null
+        }
+    ]
+}
