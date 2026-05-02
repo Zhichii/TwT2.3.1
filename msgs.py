@@ -21,8 +21,9 @@ class MsgBase:
         content = safe_get(data, str, "content", "message", "")
         role = safe_get(data, str, "role", "message", "user")
         if role == "user": return UserMsg.load(data)
-        if role == "assistant": return AssistantMsg.load(data) # Can be ReasonAssistantMsg
-        # else: 
+        if role == "assistant": return AssistantMsg.load(data) # Can be ReasonAssistantMsg or ToolCallMsg
+        if role == "tool": return ToolResultMsg.load(data)
+        # else:
         return MsgBase(role, content)
 class UserMsg(MsgBase):
     def __init__(self, content: str = "", files: list[dict] = None):
@@ -49,9 +50,14 @@ class AssistantMsg(MsgBase):
         data["interrupted"] = self.interrupted
         return data
     @staticmethod
-    def load(data : dict) -> "AssistantMsg | ReasonAssistantMsg":
+    def load(data : dict) -> "AssistantMsg | ReasonAssistantMsg | ToolCallMsg":
         content = safe_get(data, str, "content", "message", "")
         interrupted = safe_get(data, bool, "interrupted", "message", False)
+        if "tool_calls" in data:
+            tool_calls = safe_get(data, list, "tool_calls", "message", [])
+            msg = ToolCallMsg(tool_calls, interrupted)
+            msg.content = content
+            return msg
         if "reason" not in data:
             return AssistantMsg(content, interrupted)
         else:
@@ -77,6 +83,45 @@ class ReasonAssistantMsg(AssistantMsg):
             return ReasonAssistantMsg(content, reason, interrupted)
         else:
             return AssistantMsg(content, interrupted)
+
+class ToolCallMsg(AssistantMsg):
+    """Assistant message that contains tool calls instead of content."""
+    tool_calls: list[dict]
+    reason: str
+    def __init__(self, tool_calls: list[dict], interrupted: bool = False, reason: str = ""):
+        super().__init__("", interrupted)
+        self.tool_calls = list(tool_calls)
+        self.reason = reason
+    def store(self) -> dict[str, Any]:
+        data = super().store()
+        data["tool_calls"] = list(self.tool_calls)
+        data["reason"] = self.reason
+        return data
+    @staticmethod
+    def load(data: dict) -> "ToolCallMsg":
+        content = safe_get(data, str, "content", "message", "")
+        interrupted = safe_get(data, bool, "interrupted", "message", False)
+        tool_calls = safe_get(data, list, "tool_calls", "message", [])
+        reason = safe_get(data, str, "reason", "message", "")
+        msg = ToolCallMsg(tool_calls, interrupted, reason)
+        msg.content = content
+        return msg
+
+class ToolResultMsg(MsgBase):
+    tool_call_id: str
+    def __init__(self, tool_call_id: str, content: str = ""):
+        super().__init__("tool", content)
+        self.tool_call_id = tool_call_id
+    def store(self) -> dict[str, Any]:
+        data = super().store()
+        data["tool_call_id"] = self.tool_call_id
+        return data
+    @staticmethod
+    def load(data: dict) -> "ToolResultMsg":
+        content = safe_get(data, str, "content", "message", "")
+        tool_call_id = safe_get(data, str, "tool_call_id", "message", "")
+        return ToolResultMsg(tool_call_id, content)
+
 class MsgTree:
     class MsgWrapper:
         type : str
@@ -110,7 +155,9 @@ class MsgTree:
             if (type_ == "UserMsg"): msg_type = UserMsg
             if (type_ == "AssistantMsg"): msg_type = AssistantMsg
             if (type_ == "ReasonAssistantMsg"): msg_type = ReasonAssistantMsg
-            if (type_ not in ("MsgBase", "UserMsg", "AssistantMsg", "ReasonAssistantMsg",)):
+            if (type_ == "ToolCallMsg"): msg_type = ToolCallMsg
+            if (type_ == "ToolResultMsg"): msg_type = ToolResultMsg
+            if (type_ not in ("MsgBase", "UserMsg", "AssistantMsg", "ReasonAssistantMsg", "ToolCallMsg", "ToolResultMsg")):
                 log.error(t("error.load").replace("CATEGORY", t("error.load.message")).replace("TYPE", data["type"]).replace("DEFAULT","MsgBase"))
             parent = safe_get(data, (int, type(None), ), "parent", "message", None)
             msg = safe_get(data, dict, "msg", "message", None)
@@ -193,4 +240,4 @@ class MsgTree:
         if last_msg_id is None:
             return False
         else:
-            return self.msg_list[last_msg_id].type in ("AssistantMsg","ReasonAssistantMsg",)
+            return self.msg_list[last_msg_id].type in ("AssistantMsg","ReasonAssistantMsg","ToolCallMsg",)

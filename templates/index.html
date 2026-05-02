@@ -9,6 +9,10 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+button:active {
+  opacity: .7;
 }
 
 :root {
@@ -340,7 +344,7 @@ body.sidebar-collapsed .main {
   width: 100%;
   background: var(--gray-800);
   border: 1px solid var(--gray-700);
-  padding: 9px 0;
+  padding: 12px 0;
   border-radius: 28px;
   font-size: 0.85rem;
   font-weight: 500;
@@ -676,22 +680,29 @@ body.sidebar-collapsed .main {
   white-space: pre-wrap;
   word-break: break-all;
 }
-.thinking-bar {
+.function-bar {
   display: none;
   align-items: center;
   gap: 12px;
-  padding: 18px 24px;
+  padding: 12px 24px;
   background: #080808;
   border-top: 1px solid var(--gray-800);
+  border-bottom: 1px solid var(--gray-800);
   flex-wrap: wrap;
 }
-.thinking-bar.show {
+.function-bar.show {
   display: flex;
 }
-.thinking-bar .label {
+.function-bar .label {
   font-size: 0.7rem;
   font-weight: 500;
   color: var(--gray-400);
+  text-transform: uppercase;
+}
+.function-bar .think-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--gray-500);
   text-transform: uppercase;
 }
 .thinking-btn {
@@ -728,6 +739,8 @@ body.sidebar-collapsed .main {
   padding: 24px;
   width: 440px;
   max-width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
 }
 .modal input, .modal select {
   width: 100%;
@@ -927,7 +940,7 @@ body.sidebar-collapsed .main {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--gray-100);
-  margin-bottom: 2px;
+  margin-bottom: 8px;
 }
 .provider-card-url {
   font-size: 0.75rem;
@@ -935,6 +948,7 @@ body.sidebar-collapsed .main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 8px;
 }
 .provider-card-meta {
   font-size: 0.7rem;
@@ -981,14 +995,14 @@ body.sidebar-collapsed .main {
 .provider-model-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: 14px;
+  margin-bottom: 16px;
 }
 .provider-model-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 14px 18px;
   border-radius: 10px;
   background: var(--gray-800);
   font-size: 0.82rem;
@@ -1000,6 +1014,7 @@ body.sidebar-collapsed .main {
 .provider-model-name {
   color: var(--gray-100);
   font-weight: 450;
+  padding: 2px 0 8px 0;
 }
 .provider-model-id {
   font-size: 0.7rem;
@@ -1040,6 +1055,25 @@ body.sidebar-collapsed .main {
   background: #3a2020;
   color: #e0a0a0;
 }
+.provider-model-edit {
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--gray-500);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  transition: 0.1s;
+}
+.provider-model-edit:hover {
+  background: var(--gray-700);
+  color: var(--gray-200);
+}
 .provider-actions {
   display: flex;
   gap: 8px;
@@ -1048,7 +1082,7 @@ body.sidebar-collapsed .main {
 .provider-actions-btn {
   background: var(--gray-800);
   border: 1px solid var(--gray-700);
-  padding: 6px 12px;
+  padding: 12px 22px;
   border-radius: 24px;
   font-size: 0.75rem;
   color: var(--gray-300);
@@ -1251,6 +1285,87 @@ body.sidebar-collapsed .main {
     padding: 16px;
   }
 }
+/* Tool call display */
+.tool-call {
+  font-size: 0.8rem;
+  color: var(--gray-400);
+  padding: 4px 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+.tool-result {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  padding: 4px 0 4px 12px;
+  border-left: 2px solid var(--gray-700);
+  margin: 6px 0 2px 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* Toggle switch */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--gray-800);
+}
+.toggle-row:last-child {
+  border-bottom: none;
+}
+.toggle-info {
+  flex: 1;
+}
+.toggle-info h4 {
+  font-size: 0.9rem;
+  color: var(--gray-200);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.toggle-info p {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gray-600);
+  border-radius: 24px;
+  transition: 0.25s;
+}
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.25s;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background: #4a9e6a;
+}
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
 /* Add Model modal */
 .modal-sm { width: 380px; }
 .modal-row { display: flex; gap: 10px; }
@@ -1264,6 +1379,25 @@ body.sidebar-collapsed .main {
 .modal .token-input { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
 .modal .token-input input { flex: 1; margin: 0; }
 .modal .token-input label { margin: 0; white-space: nowrap; }
+.think-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.think-preset-btn {
+  background: var(--gray-800);
+  border: 1px solid var(--gray-700);
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.7rem;
+  color: var(--gray-400);
+  cursor: pointer;
+  transition: 0.1s;
+}
+.think-preset-btn:hover { background: var(--gray-700); color: var(--gray-200); }
+.think-preset-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+.think-stages { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.think-stage-check { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--gray-300); cursor: pointer; }
+.think-stage-check input { width: auto; margin: 0; cursor: pointer; }
+.think-default-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.think-default-row label { margin: 0; white-space: nowrap; font-size: 0.75rem; }
+.think-default-row select { flex: 1; }
 </style>
 </head>
 <body>
@@ -1295,6 +1429,8 @@ body.sidebar-collapsed .main {
 <div class="main" id="main">
   <div class="chat-content">
     <div class="messages" id="messages"></div>
+    <div class="function-bar" id="functionBar"></div>
+    <div class="file-preview" id="filePreview"></div>
     <div class="input-area">
       <div class="input-wrapper">
         <input type="text" id="msgInput" data-i18n-placeholder="input.placeholder" placeholder="Type a message...">
@@ -1306,8 +1442,6 @@ body.sidebar-collapsed .main {
       <button id="sendBtn" onclick="sendMessage()" data-i18n="input.send">Send</button>
       <button id="stopBtn" onclick="stopGeneration()" style="display:none" data-i18n="input.stop">Stop</button>
     </div>
-    <div class="file-preview" id="filePreview"></div>
-    <div class="thinking-bar" id="thinkingBar"></div>
   </div>
   <div class="settings-content" id="settingsContent">
     <div class="settings-header">
@@ -1320,6 +1454,7 @@ body.sidebar-collapsed .main {
       <button class="settings-tab active" data-i18n="settings.tab.prompt" onclick="switchSettingsTab('prompt')">提示词设置</button>
       <button class="settings-tab" data-i18n="settings.tab.providers" onclick="switchSettingsTab('providers')">提供商设置</button>
       <button class="settings-tab" data-i18n="settings.tab.others" onclick="switchSettingsTab('others')">其它</button>
+      <button class="settings-tab" data-i18n="settings.tab.tools" onclick="switchSettingsTab('tools')">工具设置</button>
     </div>
     <div class="settings-body">
       <!-- Tab 1: System Prompt -->
@@ -1375,11 +1510,29 @@ body.sidebar-collapsed .main {
           </div>
         </div>
       </div>
+      <!-- Tab 4: Tools -->
+      <div class="tab-content" id="tab-tools">
+        <div class="settings-section">
+          <div class="settings-section-titlebar">
+            <h3 data-i18n="settings.tools">Tools</h3>
+          </div>
+          <div id="toolsList">
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <h4 data-i18n="settings.tools.get_current_time">Get Current Time</h4>
+                <p data-i18n="settings.tools.get_current_time.desc">Allow the model to get the current accurate date and time.</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toolGetCurrentTime" onchange="toggleTool('get_current_time', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
-
-<!-- Language selector styled dropdown (hidden by default, toggled via JS) -->
 <div class="modal-overlay" id="langModal">
   <div class="modal modal-sm" style="text-align:center">
     <h2 id="langModalTitle" data-i18n="settings.language">Language</h2>
@@ -1446,6 +1599,45 @@ body.sidebar-collapsed .main {
   </div>
 </div>
 
+<div class="modal-overlay" id="editModelModal">
+  <div class="modal modal-sm">
+    <h2 data-i18n="modal.edit_model">Edit Model</h2>
+    <label data-i18n="modal.model_id">Model ID</label>
+    <input id="editModelId" readonly style="opacity:0.6; cursor:not-allowed;">
+    <label data-i18n="modal.display_name">Display Name</label>
+    <input id="editModelName" placeholder="e.g., GPT-4o">
+    <label data-i18n="modal.template">Template (re-applies capabilities)</label>
+    <select id="editModelTemplate" onchange="onEditModelTemplateChange()">
+      <option value="">— Keep current —</option>
+    </select>
+    <label data-i18n="modal.thinking_presets">Thinking Presets</label>
+    <div class="think-presets" id="editThinkPresets"></div>
+    <div class="think-stages" id="editThinkStages"></div>
+    <div class="think-default-row" id="editThinkDefaultRow" style="display:none;">
+      <label data-i18n="modal.think_default">Default Stage:</label>
+      <select id="editThinkDefault"></select>
+    </div>
+    <div class="cap-grid">
+      <label class="cap-check"><input type="checkbox" id="editModelVision"> <span data-i18n="modal.cap_vision">Vision</span></label>
+      <label class="cap-check"><input type="checkbox" id="editModelTools"> <span data-i18n="modal.cap_tools">Tools</span></label>
+    </div>
+    <div class="token-input" style="display:flex; gap:12px;">
+      <div style="flex:1">
+        <label data-i18n="modal.max_tokens">Max Tokens:</label>
+        <input type="number" id="editModelMaxTokens" value="4096" min="1">
+      </div>
+      <div style="flex:1">
+        <label data-i18n="modal.temperature">Temperature:</label>
+        <input type="number" id="editModelTemperature" step="0.1" min="0" max="2" placeholder="default">
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn-cancel" onclick="hideEditModelModal()" data-i18n="modal.cancel">Cancel</button>
+      <button class="btn-primary" onclick="confirmEditModel()" data-i18n="modal.save">Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ==================== i18n System ====================
 const LANG_KEY = 'twt_lang';
@@ -1453,7 +1645,7 @@ const LANGUAGES = ['zh', 'en', 'ja'];
 const i18n = {
   'app.title': {
     zh: 'TwT · 探索未至之境',
-    en: 'TwT · Explore the Uncharted',
+    en: 'TwT · Into the Unknown',
     ja: 'TwT · 未踏の地を探検'
   },
   'header.loading': { zh: '正在加载模型...', en: 'Loading models...', ja: 'モデルを読み込み中...' },
@@ -1467,6 +1659,7 @@ const i18n = {
   'settings.tab.prompt': { zh: '提示词设置', en: 'Prompt', ja: 'プロンプト設定' },
   'settings.tab.providers': { zh: '提供商设置', en: 'Providers', ja: 'プロバイダー設定' },
   'settings.tab.others': { zh: '其它', en: 'Other', ja: 'その他' },
+  'settings.tab.tools': { zh: '工具设置', en: 'Tools', ja: 'ツール設定' },
   'settings.system_prompt': { zh: '系统提示词', en: 'System Prompt', ja: 'システムプロンプト' },
   'settings.prompt_placeholder': { zh: '在此输入系统提示词...', en: 'Enter system prompt here...', ja: 'システムプロンプトを入力...' },
   'settings.prompt_hint': { zh: '可用模板变量:', en: 'Available template variables:', ja: '利用可能なテンプレート変数:' },
@@ -1498,6 +1691,17 @@ const i18n = {
   'modal.cap_thinking_ctrl': { zh: '思考控制', en: 'Thinking Control', ja: '思考制御' },
   'modal.cap_vision': { zh: '视觉', en: 'Vision', ja: 'ビジョン' },
   'modal.cap_tools': { zh: '工具', en: 'Tools', ja: 'ツール' },
+  'modal.thinking_presets': { zh: '思考预设', en: 'Thinking Presets', ja: '思考プリセット' },
+  'modal.think_default': { zh: '默认阶段：', en: 'Default Stage:', ja: 'デフォルト段階：' },
+  'modal.think_custom': { zh: '自定义', en: 'Custom', ja: 'カスタム' },
+  'modal.think_none': { zh: '无', en: 'None', ja: 'なし' },
+  'modal.edit_model': { zh: '编辑模型', en: 'Edit Model', ja: 'モデル編集' },
+  'modal.save': { zh: '保存', en: 'Save', ja: '保存' },
+  'modal.temperature': { zh: '温度：', en: 'Temperature:', ja: '温度：' },
+  'modal.template.keep': { zh: '— 保持当前 —', en: '— Keep current —', ja: '— 現在を維持 —' },
+  'model.edit_title': { zh: '编辑模型', en: 'Edit model', ja: 'モデルを編集' },
+  'model.edit_success': { zh: '模型已更新', en: 'Model updated', ja: 'モデルを更新しました' },
+  'model.edit_failed': { zh: '编辑模型失败：{0}', en: 'Failed to edit model: {0}', ja: 'モデルの編集に失敗：{0}' },
   'model.no_provider': { zh: '无提供商', en: 'No provider', ja: 'プロバイダーなし' },
   'model.no_models': { zh: '（无模型）', en: '(no models)', ja: '（モデルなし）' },
   'model.select': { zh: '选择模型', en: 'Select model', ja: 'モデルを選択' },
@@ -1544,12 +1748,18 @@ const i18n = {
   'stage.low': { zh: '低', en: 'Low', ja: '低' },
   'stage.auto': { zh: '自动', en: 'Auto', ja: '自動' },
   'stage.think_label': { zh: '思考', en: 'THINKING', ja: '思考' },
+  'function_bar.label': { zh: '功能区', en: 'FUNCTIONS', ja: '機能' },
   'stage.thinking': { zh: '思考中...', en: 'Thinking...', ja: '思考中...' },
   'stage.reasoning': { zh: '推理过程（点击展开）', en: 'Reasoning (click)', ja: '推論過程（クリック）' },
   'thought_process': { zh: '思考过程', en: 'Thought process', ja: '思考プロセス' },
   'language.zh': { zh: '中文', en: 'Chinese', ja: '中国語' },
   'language.en': { zh: '英文', en: 'English', ja: '英語' },
   'language.ja': { zh: '日文', en: 'Japanese', ja: '日本語' },
+  'settings.tools': { zh: '工具', en: 'Tools', ja: 'ツール' },
+  'settings.tools.get_current_time': { zh: '获取当前时间', en: 'Get Current Time', ja: '現在時刻を取得' },
+  'settings.tools.get_current_time.desc': { zh: '允许模型获取当前准确时间和日期。', en: 'Allow the model to get the current accurate date and time.', ja: 'モデルが現在の正確な日時を取得できるようにします。' },
+  'tool.tool_call': { zh: '🔧 工具调用：{name}', en: '🔧 Tool call: {name}', ja: '🔧 ツール呼び出し：{name}' },
+  'tool.tool_result': { zh: '→ 结果：{result}', en: '→ Result: {result}', ja: '→ 結果：{result}' },
 };
 function t(key, ...args) {
   const lang = localStorage.getItem(LANG_KEY) || 'en';
@@ -1651,7 +1861,7 @@ async function loadState(chatUUID) {
   rebuildCustomModelMenu(data.providers, data.state);
   updateChatList(data.chats, currentChatUUID);
   updateMessages(data.messages);
-  updateThinkingBar(data.providers, data.state);
+  updateFunctionBar(data.providers, data.state);
   renderProviderList(data.providers);
   if (currentChatUUID) {
     if (!__inSettings) window.history.replaceState(null, '', '/chat/' + currentChatUUID);
@@ -1765,6 +1975,7 @@ function updateChatList(chats, activeUUID) {
 function updateMessages(messages) {
   const container = document.getElementById('messages');
   container.innerHTML = '';
+  let prevType = '';
   messages.forEach(m => {
     if (m.type === 'ReasonAssistantMsg') {
       appendAssistantMsg(m.content, m.reason || '', false);
@@ -1772,7 +1983,51 @@ function updateMessages(messages) {
       appendAssistantMsg(m.content, '', false);
     } else if (m.type === 'UserMsg') {
       appendUserMsg(m.content, m.msg_id, m.files);
+    } else if (m.type === 'ToolCallMsg') {
+      // Reuse last assistant msg (same interaction) or create new (after UserMsg)
+      let div = container.querySelector('.msg.assistant:last-child');
+      if (!div || prevType === 'UserMsg') {
+        div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true';
+        container.appendChild(div);
+      } else if (!div.dataset.streaming) {
+        div.dataset.streaming = 'true';
+      }
+      // ToolCallMsg is always a new round — create a new bubble for its content
+      if (m.content) {
+        const bubble = document.createElement('div'); bubble.className = 'bubble'; div.appendChild(bubble);
+        bubble.dataset.raw = m.content;
+        bubble.innerHTML = renderMarkdown(m.content);
+        // Insert reason toggle before this new bubble
+        if (m.reason) {
+          const toggle = document.createElement('div'); toggle.className = 'reason-toggle open';
+          toggle.innerHTML = '<div class="reason-header">' + t('thought_process') + '</div><div class="reason-body"></div>';
+          toggle.querySelector('.reason-header').onclick = () => toggle.classList.toggle('open');
+          toggle.querySelector('.reason-body').textContent = m.reason;
+          bubble.parentNode.insertBefore(toggle, bubble);
+        }
+      } else if (m.reason) {
+        // No content but has reasoning — just append toggle at end
+        const toggle = document.createElement('div'); toggle.className = 'reason-toggle open';
+        toggle.innerHTML = '<div class="reason-header">' + t('thought_process') + '</div><div class="reason-body"></div>';
+        toggle.querySelector('.reason-header').onclick = () => toggle.classList.toggle('open');
+        toggle.querySelector('.reason-body').textContent = m.reason;
+        div.appendChild(toggle);
+      }
+      for (const tc of (m.tool_calls || [])) {
+        const name = tc.function?.name || '?';
+        const tcDiv = document.createElement('div'); tcDiv.className = 'tool-call';
+        tcDiv.textContent = t('tool.tool_call', {name});
+        div.appendChild(tcDiv);
+      }
+    } else if (m.type === 'ToolResultMsg') {
+      const div = container.querySelector('.msg.assistant:last-child');
+      if (div) {
+        const resultEl = document.createElement('div'); resultEl.className = 'tool-result';
+        resultEl.textContent = t('tool.tool_result', {result: m.content || ''});
+        div.appendChild(resultEl);
+      }
     }
+    prevType = m.type;
   });
   scrollToBottom();
 }
@@ -1825,23 +2080,34 @@ function appendAssistantMsg(text, reason, isStreamingFlag) {
     div.innerHTML = '<div class="bubble"></div>';
     container.appendChild(div);
   }
-  const bubble = div.querySelector('.bubble');
-  if (reason && !div.querySelector('.reason-toggle')) {
+  // If last child is a tool element, create a new bubble for this content
+  const lastChild = div.lastElementChild;
+  let targetBubble;
+  if (lastChild && (lastChild.classList.contains('tool-call') || lastChild.classList.contains('tool-result'))) {
+    targetBubble = document.createElement('div'); targetBubble.className = 'bubble'; div.appendChild(targetBubble);
+  } else {
+    const bubbles = div.querySelectorAll('.bubble');
+    targetBubble = bubbles[bubbles.length - 1];
+  }
+  if (!targetBubble) { targetBubble = document.createElement('div'); targetBubble.className = 'bubble'; div.appendChild(targetBubble); }
+  const firstBubble = div.querySelector('.bubble');
+  if (reason) {
     const toggle = document.createElement('div');
     toggle.className = 'reason-toggle open';
     toggle.innerHTML = '<div class="reason-header">' + t('thought_process') + '</div><div class="reason-body"></div>';
     toggle.querySelector('.reason-header').onclick = () => toggle.classList.toggle('open');
-    bubble.parentNode.insertBefore(toggle, bubble);
+    targetBubble.parentNode.insertBefore(toggle, targetBubble);
     const bodyElem = toggle.querySelector('.reason-body');
     bodyElem.textContent = reason;
-  } else if (reason && div.querySelector('.reason-toggle')) {
-    const bodyElem = div.querySelector('.reason-body');
-    if (bodyElem) bodyElem.textContent = reason;
   }
-  const raw = div.dataset.raw || '';
+  const raw = targetBubble.dataset.raw || '';
   const newRaw = raw + text;
-  div.dataset.raw = newRaw;
-  bubble.innerHTML = renderMarkdown(newRaw);
+  targetBubble.dataset.raw = newRaw;
+  targetBubble.innerHTML = renderMarkdown(newRaw);
+  // Remove empty bubble when only reasoning was shown (no visible content)
+  if (!newRaw && reason) {
+    targetBubble.remove();
+  }
   if (!isStreamingFlag) {
     delete div.dataset.streaming;
     delete div.dataset.raw;
@@ -1927,7 +2193,7 @@ async function sendMessage() {
   }
   // First message: generate UUID immediately and update URL
   if (!currentChatUUID) {
-    currentChatUUID = crypto.randomUUID();
+    currentChatUUID = crypto.randomUUID?.() || ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
     history.replaceState(null, '', '/chat/' + currentChatUUID);
   }
   input.value = '';
@@ -2004,30 +2270,37 @@ function handleStreamEvent(event) {
     let div = container.querySelector('.msg.assistant:last-child');
     if (!div || !div.dataset.streaming) {
       div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true';
-      div.innerHTML = '<div class="bubble"></div>'; container.appendChild(div);
+      container.appendChild(div);
     }
-    if (!div.querySelector('.reason-toggle')) {
-      const toggle = document.createElement('div'); toggle.className = 'reason-toggle open';
-      toggle.innerHTML = '<div class="reason-header">' + t('stage.thinking') + '</div><div class="reason-body"></div>';
-      toggle.querySelector('.reason-header').onclick = () => toggle.classList.toggle('open');
-      div.querySelector('.bubble').before(toggle);
-    }
+    const toggle = document.createElement('div'); toggle.className = 'reason-toggle open';
+    toggle.innerHTML = '<div class="reason-header">' + t('stage.thinking') + '</div><div class="reason-body"></div>';
+    toggle.querySelector('.reason-header').onclick = () => toggle.classList.toggle('open');
+    div.appendChild(toggle);
     scrollToBottom();
   }
   if (event.type === 'reason') {
-    const toggle = container.querySelector('.msg.assistant:last-child .reason-toggle');
+    const toggles = container.querySelectorAll('.msg.assistant:last-child .reason-toggle');
+    const toggle = toggles[toggles.length - 1];
     if (toggle) { const body = toggle.querySelector('.reason-body'); if (body) body.textContent += event.content; scrollToBottom(); }
   }
   if (event.type === 'reason_end') {
-    const toggle = container.querySelector('.msg.assistant:last-child .reason-toggle');
+    const toggles = container.querySelectorAll('.msg.assistant:last-child .reason-toggle');
+    const toggle = toggles[toggles.length - 1];
     if (toggle) toggle.querySelector('.reason-header').textContent = t('stage.reasoning');
   }
   if (event.type === 'content') {
     let div = container.querySelector('.msg.assistant:last-child');
     if (!div || !div.dataset.streaming) { div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true'; container.appendChild(div); }
-    let bubble = div.querySelector('.bubble');
+    let bubble;
+    const lastChild = div.lastElementChild;
+    if (lastChild && (lastChild.classList.contains('tool-call') || lastChild.classList.contains('tool-result') || lastChild.classList.contains('reason-toggle'))) {
+      bubble = document.createElement('div'); bubble.className = 'bubble'; div.appendChild(bubble);
+    } else {
+      const bubbles = div.querySelectorAll('.bubble');
+      bubble = bubbles[bubbles.length - 1];
+    }
     if (!bubble) { bubble = document.createElement('div'); bubble.className = 'bubble'; div.appendChild(bubble); }
-    const current = div.dataset.raw || ''; const newRaw = current + event.content; div.dataset.raw = newRaw;
+    const current = (bubble.dataset.raw || ''); const newRaw = current + event.content; bubble.dataset.raw = newRaw;
     bubble.innerHTML = renderMarkdown(newRaw); scrollToBottom();
   }
   if (event.type === 'error') {
@@ -2035,6 +2308,26 @@ function handleStreamEvent(event) {
     div.innerHTML = '<div class="bubble" style="color: #e0a0a0;">' + t('msg.error_prefix') + escapeHtml(event.content) + '</div>'; container.appendChild(div); scrollToBottom();
   }
   if (event.type === 'done') { if (event.chat_uuid) { currentChatUUID = event.chat_uuid; if (!__inSettings) window.history.replaceState(null, '', '/chat/' + currentChatUUID); } const div = container.querySelector('.msg.assistant:last-child'); if (div) { delete div.dataset.streaming; delete div.dataset.raw; } }
+  if (event.type === 'tool_calls') {
+    let div = container.querySelector('.msg.assistant:last-child');
+    if (!div || !div.dataset.streaming) { div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true'; container.appendChild(div); }
+    for (const tc of (event.tool_calls || [])) {
+      const name = tc.function?.name || '?';
+      const tcDiv = document.createElement('div'); tcDiv.className = 'tool-call';
+      tcDiv.textContent = t('tool.tool_call', {name});
+      div.appendChild(tcDiv);
+    }
+    scrollToBottom();
+  }
+  if (event.type === 'tool_result') {
+    const div = container.querySelector('.msg.assistant:last-child');
+    if (div) {
+      const resultEl = document.createElement('div'); resultEl.className = 'tool-result';
+      resultEl.textContent = t('tool.tool_result', {result: event.content || ''});
+      div.appendChild(resultEl);
+      scrollToBottom();
+    }
+  }
 }
 async function switchChat(uuid) { if (streaming) return; showChatView(); await loadState(uuid); }
 async function newChat() { if (streaming) return; showChatView(); await fetch('/api/chat/new', { method: 'POST' }); await loadState(); }
@@ -2047,13 +2340,16 @@ function getStageLabel(stage) {
   const map = { 'none':'stage.none','enabled':'stage.enabled','high':'stage.high','max':'stage.max','medium':'stage.medium','low':'stage.low','auto':'stage.auto' };
   return map[stage] ? t(map[stage]) : stage;
 }
-function updateThinkingBar(providers, state) { const bar = document.getElementById('thinkingBar'); bar.innerHTML = '<span class="label">' + t('stage.think_label') + '</span>'; let show = false; const pi = state.provider_index, mi = state.provider_model; if (pi != null && mi != null) { for (const p of providers) { if (p.index === pi && p.models) { for (const m of p.models) { if (m.index === mi && m.support_thinking_control && m.thinking_stages && m.thinking_stages.length) { show = true; m.thinking_stages.forEach((stage, i) => { const btn = document.createElement('button'); btn.className = 'thinking-btn' + (i === state.thinking_stage ? ' active' : ''); btn.textContent = getStageLabel(stage); btn.onclick = () => setThinkingStage(i); bar.appendChild(btn); }); break; } } break; } } } bar.classList.toggle('show', show); }
+function updateFunctionBar(providers, state) { const bar = document.getElementById('functionBar'); bar.innerHTML = '<span class="label">' + t('function_bar.label') + '</span><span class="think-label">' + t('stage.think_label') + '</span>'; let show = false; const pi = state.provider_index, mi = state.provider_model; if (pi != null && mi != null) { for (const p of providers) { if (p.index === pi && p.models) { for (const m of p.models) { if (m.index === mi && m.support_thinking_control && m.thinking_stages && m.thinking_stages.length) { show = true; m.thinking_stages.forEach((stage, i) => { const btn = document.createElement('button'); btn.className = 'thinking-btn' + (i === state.thinking_stage ? ' active' : ''); btn.textContent = getStageLabel(stage); btn.onclick = () => setThinkingStage(i); bar.appendChild(btn); }); break; } } break; } } } bar.classList.toggle('show', show); }
 async function setThinkingStage(stage) { await fetch('/api/thinking/stage', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({stage, uuid: currentChatUUID}) }); await loadState(currentChatUUID); }
 function showAddProvider() { document.getElementById('providerModal').classList.add('show'); }
 function hideAddProvider() { document.getElementById('providerModal').classList.remove('show'); }
 async function addProvider() { const name = document.getElementById('providerName').value.trim(); const base_url = document.getElementById('providerUrl').value.trim(); const api_key = document.getElementById('providerKey').value.trim(); const type = document.getElementById('providerType').value; if (!name || !base_url || !api_key) return; await fetch('/api/provider/add', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name, base_url, api_key, type}) }); document.getElementById('providerName').value = ''; document.getElementById('providerUrl').value = ''; document.getElementById('providerKey').value = ''; hideAddProvider(); await loadState(); }
 
+let __lastProviders = [];
+let __modelTemplates = [];
 function renderProviderList(providers) {
+  __lastProviders = providers;
   const list = document.getElementById('providerList');
   if (!list) return;
   if (!providers || providers.length === 0) {
@@ -2098,6 +2394,7 @@ function renderProviderList(providers) {
             '<div class="provider-model-id">' + escapeHtml(m.id) + '</div>' +
           '</div>' +
           '<div class="provider-model-badges">' + badges.join('') + '</div>' +
+          '<button class="provider-model-edit" onclick="event.stopPropagation(); showEditModelModal(' + i + ',' + mi + ')" title="' + t('model.edit_title') + '">&#9998;</button>' +
           '<button class="provider-model-delete" onclick="event.stopPropagation(); deleteModel(' + i + ',' + mi + ')" title="' + t('model.delete_title') + '">&times;</button>';
         modelList.appendChild(item);
       });
@@ -2200,9 +2497,272 @@ async function deleteModel(providerIndex, modelIndex) {
   if (data.success) await loadState();
 }
 
+// Edit Model Modal
+let __editModelProviderIndex = -1;
+let __editModelIndex = -1;
+let __editThinkPresets = [];
+let __editAllStageOptions = ['none', 'enabled', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
+
+function showEditModelModal(providerIndex, modelIndex) {
+  __editModelProviderIndex = providerIndex;
+  __editModelIndex = modelIndex;
+  const provider = __lastProviders[providerIndex];
+  if (!provider || !provider.models) return;
+  const model = provider.models[modelIndex];
+  if (!model) return;
+  document.getElementById('editModelId').value = model.id;
+  document.getElementById('editModelName').value = model.name || model.id;
+  document.getElementById('editModelVision').checked = model.support_vision || false;
+  document.getElementById('editModelTools').checked = model.support_tools || false;
+  document.getElementById('editModelMaxTokens').value = model.default_max_tokens || 4096;
+  var tempInput = document.getElementById('editModelTemperature');
+  tempInput.value = model.default_temperature != null ? model.default_temperature : '';
+  // Populate template dropdown
+  var select = document.getElementById('editModelTemplate');
+  select.innerHTML = '<option value="">' + t('modal.template.keep') + '</option>';
+  (async function() {
+    if (typeof __modelTemplates !== 'undefined' && __modelTemplates.length === 0) {
+      try {
+        var r = await fetch('/api/provider/templates');
+        var d = await r.json();
+        __modelTemplates = d.templates || [];
+      } catch (e) {}
+    }
+    if (typeof __modelTemplates !== 'undefined') {
+      __modelTemplates.forEach(function(t) {
+        var opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = (t.name || t.id) + ' (' + t.id + ')';
+        select.appendChild(opt);
+      });
+    }
+  })();
+  select.value = '';
+  // Populate thinking presets
+  (async function() {
+    if (__editThinkPresets.length === 0) {
+      try {
+        var r = await fetch('/api/thinking/presets');
+        var d = await r.json();
+        __editThinkPresets = d.presets || [];
+      } catch (e) {}
+    }
+    populateThinkPresets(__editThinkPresets);
+    // Pre-fill stages from current model
+    var currentStages = model.thinking_stages || [];
+    // Find matching preset
+    var matchedPreset = null;
+    if (currentStages.length > 0) {
+      for (var pi = 0; pi < __editThinkPresets.length; pi++) {
+        var ps = __editThinkPresets[pi].stages || [];
+        if (ps.length === currentStages.length && ps.every(function(s, idx) { return s === currentStages[idx]; })) {
+          matchedPreset = __editThinkPresets[pi].id;
+          break;
+        }
+      }
+    }
+    // Highlight matched preset or custom
+    var btns = document.querySelectorAll('.think-preset-btn');
+    for (var bi = 0; bi < btns.length; bi++) {
+      if (btns[bi].dataset.preset === matchedPreset) btns[bi].classList.add('active');
+      else if (!matchedPreset && currentStages.length === 0 && btns[bi].dataset.preset === 'none') btns[bi].classList.add('active');
+    }
+    updateThinkStages(currentStages);
+    updateThinkDefault(currentStages, model.thinking_stage || 0);
+  })();
+  document.getElementById('editModelModal').classList.add('show');
+}
+function hideEditModelModal() {
+  document.getElementById('editModelModal').classList.remove('show');
+}
+function populateThinkPresets(presets) {
+  var container = document.getElementById('editThinkPresets');
+  container.innerHTML = '';
+  // "None" preset
+  var noneBtn = document.createElement('button');
+  noneBtn.className = 'think-preset-btn';
+  noneBtn.dataset.preset = 'none';
+  noneBtn.textContent = t('modal.think_none') || 'None';
+  noneBtn.onclick = function() { onThinkPresetClick('none'); };
+  container.appendChild(noneBtn);
+  presets.forEach(function(p) {
+    var btn = document.createElement('button');
+    btn.className = 'think-preset-btn';
+    btn.dataset.preset = p.id;
+    btn.textContent = p.name && p.name.zh ? p.name.zh : p.id;
+    btn.onclick = function() { onThinkPresetClick(p.id); };
+    container.appendChild(btn);
+  });
+  // Custom preset
+  var customBtn = document.createElement('button');
+  customBtn.className = 'think-preset-btn';
+  customBtn.dataset.preset = 'custom';
+  customBtn.textContent = t('modal.think_custom') || 'Custom';
+  customBtn.onclick = function() { onThinkPresetClick('custom'); };
+  container.appendChild(customBtn);
+}
+function onThinkPresetClick(presetId) {
+  // Remove active from all preset buttons
+  var btns = document.querySelectorAll('.think-preset-btn');
+  for (var bi = 0; bi < btns.length; bi++) btns[bi].classList.remove('active');
+  // Activate clicked
+  for (var bi = 0; bi < btns.length; bi++) {
+    if (btns[bi].dataset.preset === presetId) { btns[bi].classList.add('active'); break; }
+  }
+  var stages = [];
+  if (presetId === 'none') {
+    // No thinking stages
+  } else if (presetId === 'custom') {
+    // Keep current selection or start from all unchecked
+  } else {
+    // Find preset
+    for (var pi = 0; pi < __editThinkPresets.length; pi++) {
+      if (__editThinkPresets[pi].id === presetId) {
+        stages = __editThinkPresets[pi].stages || [];
+        break;
+      }
+    }
+  }
+  updateThinkStages(stages);
+  updateThinkDefault(stages, 0);
+}
+function updateThinkStages(checkedStages) {
+  var container = document.getElementById('editThinkStages');
+  container.innerHTML = '';
+  var checkedSet = {};
+  if (checkedStages && checkedStages.length > 0) {
+    for (var si = 0; si < checkedStages.length; si++) checkedSet[checkedStages[si]] = true;
+  }
+  __editAllStageOptions.forEach(function(stage) {
+    var label = document.createElement('label');
+    label.className = 'think-stage-check';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!checkedSet[stage];
+    cb.dataset.stage = stage;
+    cb.onchange = function() {
+      // On manual toggle: highlight "custom" preset
+      var btns = document.querySelectorAll('.think-preset-btn');
+      for (var bi = 0; bi < btns.length; bi++) btns[bi].classList.remove('active');
+      for (var bi = 0; bi < btns.length; bi++) {
+        if (btns[bi].dataset.preset === 'custom') { btns[bi].classList.add('active'); break; }
+      }
+      updateThinkDefault(getCheckedStages(), 0);
+    };
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(stage));
+    container.appendChild(label);
+  });
+}
+function getCheckedStages() {
+  var stages = [];
+  var cbs = document.querySelectorAll('#editThinkStages input[type=checkbox]');
+  for (var ci = 0; ci < cbs.length; ci++) {
+    if (cbs[ci].checked) stages.push(cbs[ci].dataset.stage);
+  }
+  return stages;
+}
+function updateThinkDefault(stages, selectedIdx) {
+  var row = document.getElementById('editThinkDefaultRow');
+  var select = document.getElementById('editThinkDefault');
+  if (!stages || stages.length === 0) {
+    row.style.display = 'none';
+    return;
+  }
+  row.style.display = 'flex';
+  select.innerHTML = '';
+  stages.forEach(function(s, i) {
+    var opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = s;
+    if (i === selectedIdx) opt.selected = true;
+    select.appendChild(opt);
+  });
+}
+function onEditModelTemplateChange() {
+  var select = document.getElementById('editModelTemplate');
+  var templateId = select.value;
+  if (!templateId) return;
+  var tpl = null;
+  if (typeof __modelTemplates !== 'undefined') {
+    for (var ti = 0; ti < __modelTemplates.length; ti++) {
+      if (__modelTemplates[ti].id === templateId) { tpl = __modelTemplates[ti]; break; }
+    }
+  }
+  if (!tpl) return;
+  document.getElementById('editModelVision').checked = tpl.support_vision || false;
+  document.getElementById('editModelTools').checked = tpl.support_tools || false;
+  document.getElementById('editModelMaxTokens').value = tpl.default_max_tokens || 4096;
+  var tempInput = document.getElementById('editModelTemperature');
+  tempInput.value = tpl.default_temperature != null ? tpl.default_temperature : '';
+  // Auto-fill thinking stages from template
+  var ts = tpl.thinking_stages || [];
+  if (ts.length > 0) {
+    var btns = document.querySelectorAll('.think-preset-btn');
+    for (var bi = 0; bi < btns.length; bi++) btns[bi].classList.remove('active');
+    // Try to match preset, fall back to custom
+    var matched = null;
+    for (var pi = 0; pi < __editThinkPresets.length; pi++) {
+      var ps = __editThinkPresets[pi].stages || [];
+      if (ps.length === ts.length && ps.every(function(s, idx) { return s === ts[idx]; })) {
+        matched = __editThinkPresets[pi].id;
+        break;
+      }
+    }
+    if (matched) {
+      for (var bi = 0; bi < btns.length; bi++) {
+        if (btns[bi].dataset.preset === matched) { btns[bi].classList.add('active'); break; }
+      }
+    } else {
+      for (var bi = 0; bi < btns.length; bi++) {
+        if (btns[bi].dataset.preset === 'custom') { btns[bi].classList.add('active'); break; }
+      }
+    }
+    updateThinkStages(ts);
+    updateThinkDefault(ts, 0);
+  }
+}
+async function confirmEditModel() {
+  var body = {};
+  var name = document.getElementById('editModelName').value.trim();
+  if (name) body.name = name;
+  var templateSelect = document.getElementById('editModelTemplate');
+  if (templateSelect.value) body.template = templateSelect.value;
+  // Read thinking stages from checkboxes
+  var checkedStages = getCheckedStages();
+  body.thinking_stages = checkedStages;
+  // Read default stage index
+  var defaultSelect = document.getElementById('editThinkDefault');
+  if (defaultSelect.value) body.thinking_stage = parseInt(defaultSelect.value, 10);
+  body.support_vision = document.getElementById('editModelVision').checked;
+  body.support_tools = document.getElementById('editModelTools').checked;
+  var maxTokens = parseInt(document.getElementById('editModelMaxTokens').value, 10);
+  if (!isNaN(maxTokens) && maxTokens > 0) body.max_tokens = maxTokens;
+  var tempVal = document.getElementById('editModelTemperature').value;
+  if (tempVal === '') {
+    body.temperature = null;
+  } else {
+    var temp = parseFloat(tempVal);
+    if (!isNaN(temp)) body.temperature = temp;
+  }
+  var pIndex = __editModelProviderIndex;
+  var mIndex = __editModelIndex;
+  try {
+    var r = await fetch('/api/provider/' + pIndex + '/models/' + mIndex, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+    var data = await r.json();
+    if (data.success) {
+      hideEditModelModal();
+      await loadState();
+    } else {
+      alert(t('model.edit_failed', data.error || 'unknown error'));
+    }
+  } catch (e) {
+    alert(t('model.edit_failed', e.message));
+  }
+}
+
 // Add Model Modal
 let __addModelProviderIndex = -1;
-let __modelTemplates = [];
 
 async function showAddModelModal(providerIndex, providerName) {
   __addModelProviderIndex = providerIndex;
@@ -2286,6 +2846,7 @@ function showSettingsView() {
   closeMobileSidebar();
   window.history.replaceState(null, '', '/settings');
   loadSystemPrompt();
+  loadTools();
 }
 
 function switchSettingsTab(name) {
@@ -2318,6 +2879,28 @@ async function saveSystemPrompt() {
     btn.classList.add('saved');
     setTimeout(() => { btn.textContent = t('settings.prompt_save'); btn.classList.remove('saved'); }, 2000);
   } catch(e) { console.error('Failed to save system prompt', e); }
+}
+
+async function loadTools() {
+  try {
+    const r = await fetch('/api/tools');
+    const data = await r.json();
+    const tools = data.tools || {};
+    const timeCheckbox = document.getElementById('toolGetCurrentTime');
+    if (timeCheckbox && tools.get_current_time) {
+      timeCheckbox.checked = tools.get_current_time.enabled === true;
+    }
+  } catch(e) { console.error('Failed to load tools config', e); }
+}
+
+async function toggleTool(toolId, enabled) {
+  try {
+    await fetch('/api/tools', {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tool_id: toolId, enabled: enabled})
+    });
+  } catch(e) { console.error('Failed to toggle tool', e); }
 }
 
 function showChatView() {

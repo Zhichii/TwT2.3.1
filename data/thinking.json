@@ -1,0 +1,32 @@
+{
+  "presets": [
+    {
+      "id": "dual",
+      "name": {
+        "zh": "双模式",
+        "en": "Dual Mode",
+        "ja": "デュアルモード"
+      },
+      "stages": ["none", "enabled"]
+    },
+    {
+      "id": "deepseek",
+      "name": {
+        "zh": "DeepSeek V4 样式",
+        "en": "DeepSeek V4 Style",
+        "ja": "DeepSeek V4 スタイル"
+      },
+      "stages": ["none", "high", "max"]
+    },
+    {
+      "id": "gpt",
+      "name": {
+        "zh": "GPT 式",
+        "en": "GPT Style",
+        "ja": "GPT スタイル"
+      },
+      "stages": ["minimal", "low", "medium", "high", "xhigh"],
+      "checkable": true
+    }
+  ]
+}

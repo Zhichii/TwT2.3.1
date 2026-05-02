@@ -151,5 +151,35 @@ translation = {
         "zh": "自动",
         "en": "Auto",
         "ja": "自動"
+    },
+    "settings.tab.tools": {
+        "zh": "工具设置",
+        "en": "Tools",
+        "ja": "ツール設定"
+    },
+    "settings.tools": {
+        "zh": "工具",
+        "en": "Tools",
+        "ja": "ツール"
+    },
+    "settings.tools.get_current_time": {
+        "zh": "获取当前时间",
+        "en": "Get Current Time",
+        "ja": "現在時刻を取得"
+    },
+    "settings.tools.get_current_time.desc": {
+        "zh": "允许模型获取当前准确时间和日期。",
+        "en": "Allow the model to get the current accurate date and time.",
+        "ja": "モデルが現在の正確な日時を取得できるようにします。"
+    },
+    "settings.tools.enabled": {
+        "zh": "已启用",
+        "en": "Enabled",
+        "ja": "有効"
+    },
+    "settings.tools.disabled": {
+        "zh": "已禁用",
+        "en": "Disabled",
+        "ja": "無効"
     }
 }

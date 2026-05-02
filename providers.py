@@ -1,4 +1,4 @@
-import openai, anthropic
+import json, openai, anthropic
 import msgs, log
 from tools import merge
 from typing import Any
@@ -55,6 +55,28 @@ class OpenAIProvider:
                     messages.append({"role": "assistant", "content": msg.msg.content, "reasoning_content": msg.msg.reason, "prefix": True})
                 else:
                     messages.append({"role": "assistant", "content": msg.msg.content, "reasoning_content": msg.msg.reason})
+            if (msg.type == "ToolCallMsg"):
+                entry = {"role": "assistant", "content": msg.msg.content if msg.msg.content else None}
+                if hasattr(msg.msg, 'reason') and msg.msg.reason:
+                    entry["reasoning_content"] = msg.msg.reason
+                if hasattr(msg.msg, 'tool_calls') and msg.msg.tool_calls:
+                    entry["tool_calls"] = []
+                    for tc in msg.msg.tool_calls:
+                        entry["tool_calls"].append({
+                            "id": tc.get("id", ""),
+                            "type": "function",
+                            "function": {
+                                "name": tc.get("function", {}).get("name", ""),
+                                "arguments": tc.get("function", {}).get("arguments", "")
+                            }
+                        })
+                messages.append(entry)
+            if (msg.type == "ToolResultMsg"):
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": msg.msg.tool_call_id,
+                    "content": msg.msg.content
+                })
             if msg_tree.msg_list[cur].child is not None: cur = msg_tree.msg_list[cur].children[msg_tree.msg_list[cur].child]
             else: break
         return messages
@@ -62,13 +84,17 @@ class OpenAIProvider:
         return []
     def get_thinking_args(self, stage: str, max_tokens: int) -> dict:
         return {}
-    def __call__(self, model : str, msg_tree : msgs.MsgTree, max_tokens : int = 4096, stream : bool = True, thinking_stage : str | None = None, system_prompt : str | None = None, **kwargs):
+    def __call__(self, model : str, msg_tree : msgs.MsgTree, max_tokens : int = 4096, stream : bool = True, thinking_stage : str | None = None, system_prompt : str | None = None, tools : list | None = None, **kwargs):
         model_name = kwargs.pop("model_name", "")
         messages = self._to_format(msg_tree, system_prompt=system_prompt or "", model_name=model_name, model_id=model)
         extra_body = dict(kwargs)
         if thinking_stage is not None:
             merge(extra_body, self.get_thinking_args(thinking_stage, max_tokens))
-        for chunk in self.client.chat.completions.create(model=model, messages=messages, stream=stream, max_tokens=max_tokens, extra_body=extra_body):
+        create_kwargs = dict(model=model, messages=messages, stream=stream, max_tokens=max_tokens, extra_body=extra_body)
+        if tools:
+            create_kwargs["tools"] = tools
+        tool_calls_acc = {}  # index -> {id, type, function: {name, arguments}}
+        for chunk in self.client.chat.completions.create(**create_kwargs):
             if hasattr(chunk, "choices") and isinstance(chunk.choices, list):
                 if len(chunk.choices) > 0:
                     delta = chunk.choices[0].delta
@@ -78,6 +104,26 @@ class OpenAIProvider:
                         yield ("reason", delta.reasoning)
                     if delta.content:
                         yield ("content", delta.content)
+                    # Accumulate tool calls
+                    if hasattr(delta, "tool_calls") and delta.tool_calls:
+                        for tc in delta.tool_calls:
+                            idx = tc.index
+                            if idx not in tool_calls_acc:
+                                tool_calls_acc[idx] = {
+                                    "id": tc.id or "",
+                                    "type": "function",
+                                    "function": {"name": "", "arguments": ""}
+                                }
+                            if tc.function:
+                                if tc.function.name:
+                                    tool_calls_acc[idx]["function"]["name"] += tc.function.name
+                                if tc.function.arguments:
+                                    tool_calls_acc[idx]["function"]["arguments"] += tc.function.arguments
+        # If tool calls were accumulated, yield them
+        if tool_calls_acc:
+            sorted_indices = sorted(tool_calls_acc.keys())
+            tool_calls_list = [tool_calls_acc[i] for i in sorted_indices]
+            yield ("tool_calls", tool_calls_list)
 
 class DeepSeekProvider(OpenAIProvider):
     def get_thinking_stages(self) -> list[str]:
@@ -157,6 +203,36 @@ class AnthropicProvider:
                     messages.append({"role": "assistant", "content": msg.msg.content, "reasoning_content": msg.msg.reason})
                 else:
                     log.error("the tag and the type are not the same")
+            if (msg.type == "ToolCallMsg"):
+                content_blocks = []
+                reason = getattr(msg.msg, 'reason', '')
+                if reason:
+                    content_blocks.append({"type": "thinking", "thinking": reason})
+                content_text = msg.msg.content
+                if content_text:
+                    content_blocks.append({"type": "text", "text": content_text})
+                for tc in getattr(msg.msg, 'tool_calls', []):
+                    try:
+                        input_data = json.loads(tc.get("function", {}).get("arguments", "{}"))
+                    except json.JSONDecodeError:
+                        input_data = {}
+                    content_blocks.append({
+                        "type": "tool_use",
+                        "id": tc.get("id", ""),
+                        "name": tc.get("function", {}).get("name", ""),
+                        "input": input_data
+                    })
+                entry = {"role": "assistant", "content": content_blocks} if content_blocks else {"role": "assistant", "content": msg.msg.content}
+                messages.append(entry)
+            if (msg.type == "ToolResultMsg"):
+                messages.append({
+                    "role": "user",
+                    "content": [{
+                        "type": "tool_result",
+                        "tool_use_id": msg.msg.tool_call_id,
+                        "content": msg.msg.content
+                    }]
+                })
             if msg_tree.msg_list[cur].child is not None: cur = msg_tree.msg_list[cur].children[msg_tree.msg_list[cur].child]
             else: break
         return (messages, "\n".join(system), )

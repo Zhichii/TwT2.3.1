@@ -7,6 +7,14 @@ from app import App
 app = Flask(__name__)
 chat_app = App()
 
+@app.after_request
+def add_cors_headers(resp):
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Private-Network"] = "true"
+    resp.headers["Access-Control-Allow-Headers"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = "*"
+    return resp
+
 
 @app.route('/')
 def index():
@@ -48,7 +56,8 @@ def send_message():
     language = data.get('language', 'en')
 
     def generate():
-        for event in chat_app.chats.stream_message(msg, chat_uuid, files=files, language=language):
+        tools = chat_app._get_enabled_tools()
+        for event in chat_app.chats.stream_message(msg, chat_uuid, files=files, language=language, tools=tools, execute_tool=chat_app._execute_tool):
             yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
     return Response(
@@ -138,6 +147,11 @@ def get_model_templates():
     return jsonify({"templates": chat_app.get_model_templates()})
 
 
+@app.route('/api/thinking/presets', methods=['GET'])
+def get_thinking_presets():
+    return jsonify({"presets": chat_app.get_thinking_presets()})
+
+
 @app.route('/api/provider/<int:index>/models/recognize', methods=['GET'])
 def recognize_models(index):
     models = chat_app.get_recognized_models(index)
@@ -159,9 +173,18 @@ def add_model_to_provider(index):
     return jsonify({"success": False, "error": "Failed to add model (duplicate or invalid provider)"}), 400
 
 
-@app.route('/api/provider/<int:pindex>/models/<int:midx>', methods=['DELETE'])
-def delete_model_from_provider(pindex, midx):
-    success = chat_app.delete_model_from_provider(pindex, midx)
+@app.route('/api/provider/<int:pindex>/models/<int:midx>', methods=['DELETE', 'PATCH'])
+def modify_model(pindex, midx):
+    if request.method == 'DELETE':
+        success = chat_app.delete_model_from_provider(pindex, midx)
+        if success:
+            return jsonify({"success": True})
+        return jsonify({"success": False, "error": "Invalid provider or model index"}), 400
+    # PATCH
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "error": "No data provided"}), 400
+    success = chat_app.edit_model_on_provider(pindex, midx, data)
     if success:
         return jsonify({"success": True})
     return jsonify({"success": False, "error": "Invalid provider or model index"}), 400
@@ -208,6 +231,22 @@ def set_system_prompt():
     data = request.get_json()
     value = data.get('system_prompt', '')
     chat_app.set_system_prompt(value)
+    return jsonify({"success": True})
+
+
+@app.route('/api/tools', methods=['GET'])
+def get_tools():
+    return jsonify({"tools": chat_app.get_tools_config()})
+
+
+@app.route('/api/tools', methods=['PATCH'])
+def set_tools():
+    data = request.get_json()
+    tool_id = data.get('tool_id', '')
+    enabled = data.get('enabled', True)
+    if not tool_id:
+        return jsonify({"success": False, "error": "tool_id is required"}), 400
+    chat_app.set_tool_enabled(tool_id, bool(enabled))
     return jsonify({"success": True})
 
 

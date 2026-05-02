@@ -2,11 +2,12 @@ import translations
 translations.lang = "en"
 
 import os, json, uuid, re
+import datetime
 import openai
 import log, msgs, providers
 from copy import deepcopy
 from tools import safe_get, merge
-from typing import Literal, Any
+from typing import Literal, Any, Callable
 from translations import translate as t
 # from my_io import linux_input # deprecated. use readline instead (wait for me to test on Windows)
 # 不要问我为什么不遵循规范
@@ -381,10 +382,13 @@ class Chats:
             if reason: chat.append(msgs.ReasonAssistantMsg(content, reason, interrupt))
             else: chat.append(msgs.AssistantMsg(content, interrupt))
         self._save_chat(chat)
-    def stream_message(self, msg: str, chat_uuid: str | None = None, files: list[dict] | None = None, language: str = "en"):
+    def stream_message(self, msg: str, chat_uuid: str | None = None, files: list[dict] | None = None, language: str = "en", tools: list | None = None, execute_tool: Callable | None = None):
         """Generator that streams a response, yielding event dicts.
+        Supports tool calling loop: if the model calls tools, they are executed
+        and the result is sent back to the model for the next round.
         If chat_uuid is None, creates a new chat."""
         files = files or []
+        tools = tools or []
         chat = self._load_chat(chat_uuid) if chat_uuid else None
         if chat is None:
             chat = Chat()
@@ -403,53 +407,82 @@ class Chats:
         if (chat.provider_index is None) or (chat.provider_model is None):
             yield {"type": "error", "content": "No provider or model selected"}
             return
-        gen = self.providers.generate(chat.provider_index, chat.provider_model, thinking_stage=chat.thinking_stage)
-        if gen is None:
-            yield {"type": "error", "content": "Failed to generate"}
-            return
         system_prompt = self.cfg.data.get("system_prompt", "")
         system_prompt = system_prompt.replace("{{language}}", language)
-        reasons = []
-        contents = []
-        state : Literal["content", "reason"] = "content"
         client_disconnected = False
-        api_error = False
-        try:
-            for i in self.providers.providers[chat.provider_index].client(gen[0], chat.msg_tree, gen[1], True, thinking_stage=gen[3], system_prompt=system_prompt, **gen[2]):
-                if i[0] != state:
-                    if i[0] == "reason":
-                        yield {"type": "reason_start"}
-                    else:
-                        yield {"type": "reason_end"}
-                    state = i[0]
-                if i[0] == "reason":
-                    reasons.append(i[1])
-                    yield {"type": "reason", "content": i[1]}
-                if i[0] == "content":
-                    contents.append(i[1])
-                    yield {"type": "content", "content": i[1]}
-        except GeneratorExit:
-            client_disconnected = True
-        except Exception as e:
-            log.error("stream error", e)
-            api_error = True
+        max_tool_rounds = 10
+        for tool_round in range(max_tool_rounds + 1):
+            gen = self.providers.generate(chat.provider_index, chat.provider_model, thinking_stage=chat.thinking_stage)
+            if gen is None:
+                if tool_round == 0:
+                    yield {"type": "error", "content": "Failed to generate"}
+                return
+            reasons = []
+            contents = []
+            tool_calls = None
+            state : Literal["content", "reason"] = "content"
+            api_error = False
             try:
-                yield {"type": "error", "content": str(e)}
+                for i in self.providers.providers[chat.provider_index].client(gen[0], chat.msg_tree, gen[1], True, thinking_stage=gen[3], system_prompt=system_prompt, tools=tools, **gen[2]):
+                    if i[0] == "tool_calls":
+                        tool_calls = i[1]
+                    elif i[0] != state:
+                        if i[0] == "reason":
+                            yield {"type": "reason_start"}
+                        else:
+                            yield {"type": "reason_end"}
+                        state = i[0]
+                    if i[0] == "reason":
+                        reasons.append(i[1])
+                        yield {"type": "reason", "content": i[1]}
+                    if i[0] == "content":
+                        contents.append(i[1])
+                        yield {"type": "content", "content": i[1]}
             except GeneratorExit:
                 client_disconnected = True
-        # Save partial assistant message (even if interrupted)
-        reason = "".join(reasons)
-        content = "".join(contents)
-        interrupted = client_disconnected or api_error
-        if reason or content:
-            if reason:
-                chat.append(msgs.ReasonAssistantMsg(content, reason, interrupted))
-            else:
-                chat.append(msgs.AssistantMsg(content, interrupted))
-            self._save_chat(chat)
-        # Only yield "done" if client is still connected
+                break
+            except Exception as e:
+                log.error("stream error", e)
+                api_error = True
+                try:
+                    yield {"type": "error", "content": str(e)}
+                except GeneratorExit:
+                    client_disconnected = True
+                break
+            # Check if model wants to call tools
+            if tool_calls and not client_disconnected and not api_error:
+                # Save the tool call message
+                combined_content = "".join(contents)
+                combined_reason = "".join(reasons)
+                tc_msg = msgs.ToolCallMsg(tool_calls, reason=combined_reason)
+                tc_msg.content = combined_content
+                chat.append(tc_msg)
+                # Execute each tool and append results
+                yield {"type": "tool_calls", "tool_calls": tool_calls}
+                for tc in tool_calls:
+                    result = execute_tool(tc) if execute_tool else f"Error: no tool executor"
+                    chat.append(msgs.ToolResultMsg(tc.get("id", ""), result))
+                    yield {"type": "tool_result", "tool_call_id": tc.get("id", ""), "tool_name": tc.get("function", {}).get("name", ""), "content": result}
+                self._save_chat(chat)
+                # Continue loop to re-call provider with tool results
+                continue
+            # Normal response (content/reason, no tool calls)
+            reason = "".join(reasons)
+            content = "".join(contents)
+            interrupted = client_disconnected or api_error
+            if reason or content:
+                if reason:
+                    chat.append(msgs.ReasonAssistantMsg(content, reason, interrupted))
+                else:
+                    chat.append(msgs.AssistantMsg(content, interrupted))
+                self._save_chat(chat)
+            # Only yield "done" if client is still connected
+            if not client_disconnected:
+                yield {"type": "done", "reason": reason, "content": content, "chat_uuid": chat_uuid}
+            return
+        # Max tool rounds reached
         if not client_disconnected:
-            yield {"type": "done", "reason": reason, "content": content, "chat_uuid": chat_uuid}
+            yield {"type": "error", "content": "Max tool call rounds reached"}
     def set_thinking_stage(self, stage: int | None, chat_uuid: str | None = None):
         if chat_uuid:
             idx = self._find_chat_index(chat_uuid)
@@ -500,7 +533,7 @@ class App:
     recognize_data : dict
     template_data : dict
     def __init__(self):
-        self.cfg = Config("config.json", {"providers":[],"provider_index":None,"provider_model":None,"thinking_stage":None,"chats":[],"system_prompt":""})
+        self.cfg = Config("config.json", {"providers":[],"provider_index":None,"provider_model":None,"thinking_stage":None,"chats":[],"system_prompt":"","tools":{"get_current_time":{"enabled":True}}})
         self.providers = Providers(self.cfg)
         self.chats = Chats(self.cfg, self.providers)
         # Load data files
@@ -516,6 +549,14 @@ class App:
         return default
     def get_model_templates(self) -> list:
         return self.template_data.get("templates", [])
+    def get_thinking_presets(self) -> list:
+        try:
+            path = os.path.join(os.path.dirname(__file__), "data", "thinking.json")
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+                return data.get("presets", [])
+        except Exception:
+            return []
     def get_system_prompt(self) -> str:
         return self.cfg.data.get("system_prompt", "")
     def set_system_prompt(self, value: str):
@@ -616,13 +657,68 @@ class App:
             self.cfg["providers"] = data
             self.cfg.save()
         return True
+    def edit_model_on_provider(self, provider_index: int, model_index: int, model_data: dict) -> bool:
+        """Edit an existing model's properties. Optionally re-apply a template,
+        then override individual fields."""
+        if provider_index < 0 or provider_index >= len(self.providers.providers):
+            return False
+        provider = self.providers.providers[provider_index]
+        if model_index < 0 or model_index >= len(provider.models):
+            return False
+        model = provider.models[model_index]
+
+        # Re-apply template if specified
+        template_id = model_data.get("template")
+        if template_id:
+            for t in self.template_data.get("templates", []):
+                if t.get("id") == template_id:
+                    model.support_vision = t.get("support_vision", False)
+                    model.support_tools = t.get("support_tools", False)
+                    model.default_max_tokens = t.get("default_max_tokens", 4096)
+                    model.default_temperature = t.get("default_temperature", None)
+                    thinking_stages = t.get("thinking_stages", [])
+                    if thinking_stages:
+                        model.set_thinking_stages(thinking_stages)
+                    break
+
+        # Individual field overrides (applied after template, so these win)
+        if "name" in model_data:
+            name = model_data["name"].strip()
+            if name:
+                model.name = name
+        if "support_vision" in model_data:
+            model.support_vision = bool(model_data["support_vision"])
+        if "support_tools" in model_data:
+            model.support_tools = bool(model_data["support_tools"])
+        if "thinking_stages" in model_data:
+            stages = model_data["thinking_stages"]
+            if isinstance(stages, list):
+                default_stage = model_data.get("thinking_stage", 0)
+                model.set_thinking_stages(stages, default_stage)
+        elif "thinking_stage" in model_data:
+            idx = int(model_data["thinking_stage"])
+            if 0 <= idx < len(model.thinking_stages):
+                model.thinking_stage = idx
+        if "temperature" in model_data:
+            val = model_data["temperature"]
+            model.default_temperature = float(val) if val is not None else None
+        if "max_tokens" in model_data:
+            model.default_max_tokens = int(model_data["max_tokens"])
+
+        # Save to config
+        data = self.cfg["providers"]
+        if 0 <= provider_index < len(data):
+            data[provider_index] = provider.store()
+            self.cfg["providers"] = data
+            self.cfg.save()
+        return True
     def get_providers_json(self) -> list:
         """Returns providers/models list for the dropdown UI."""
         result = []
         for pi, provider in enumerate(self.providers.providers):
             pdata = {"index": pi, "name": provider.name, "base_url": provider.base_url, "type": provider.type, "models": []}
             for mi, model in enumerate(provider.models):
-                pdata["models"].append({"index": mi, "name": model.name, "id": model.id, "support_thinking": model.support_thinking, "support_vision": model.support_vision, "support_thinking_control": model.support_thinking_control, "thinking_stages": model.thinking_stages, "thinking_stage": model.thinking_stage})
+                pdata["models"].append({"index": mi, "name": model.name, "id": model.id, "support_thinking": model.support_thinking, "support_vision": model.support_vision, "support_tools": model.support_tools, "support_thinking_control": model.support_thinking_control, "thinking_stages": model.thinking_stages, "thinking_stage": model.thinking_stage, "default_max_tokens": model.default_max_tokens, "default_temperature": model.default_temperature})
             result.append(pdata)
         return result
     def get_chats_list(self) -> list:
@@ -637,8 +733,8 @@ class App:
         if chat_uuid:
             chat = self.chats._load_chat(chat_uuid)
             if chat is not None:
-                return {"provider_index": chat.provider_index, "provider_model": chat.provider_model, "chat_uuid": chat.uuid, "thinking_stage": chat.thinking_stage, "system_prompt": self.get_system_prompt()}
-        return {"provider_index": self.providers.provider_index, "provider_model": self.providers.provider_model, "chat_uuid": None, "thinking_stage": self.cfg["thinking_stage"], "system_prompt": self.get_system_prompt()}
+                return {"provider_index": chat.provider_index, "provider_model": chat.provider_model, "chat_uuid": chat.uuid, "thinking_stage": chat.thinking_stage, "system_prompt": self.get_system_prompt(), "tools": self.get_tools_config()}
+        return {"provider_index": self.providers.provider_index, "provider_model": self.providers.provider_model, "chat_uuid": None, "thinking_stage": self.cfg["thinking_stage"], "system_prompt": self.get_system_prompt(), "tools": self.get_tools_config()}
     def set_thinking_stage(self, stage: int | None, chat_uuid: str | None = None):
         self.chats.set_thinking_stage(stage, chat_uuid)
     def select_provider(self, provider_idx: int, model_idx: int, chat_uuid: str | None = None):
@@ -687,12 +783,18 @@ class App:
         cur = 0
         while True:
             wrapper = chat.msg_tree.msg_list[cur]
-            if wrapper.type in ("UserMsg", "AssistantMsg", "ReasonAssistantMsg"):
+            if wrapper.type in ("UserMsg", "AssistantMsg", "ReasonAssistantMsg", "ToolCallMsg", "ToolResultMsg"):
                 msg_data = {"type": wrapper.type, "content": wrapper.msg.content, "msg_id": cur}
                 if wrapper.type == "ReasonAssistantMsg":
                     msg_data["reason"] = wrapper.msg.reason
                 if wrapper.type == "UserMsg" and wrapper.msg.files:
                     msg_data["files"] = wrapper.msg.files
+                if wrapper.type == "ToolCallMsg":
+                    msg_data["tool_calls"] = wrapper.msg.tool_calls
+                    if wrapper.msg.reason:
+                        msg_data["reason"] = wrapper.msg.reason
+                if wrapper.type == "ToolResultMsg":
+                    msg_data["tool_call_id"] = wrapper.msg.tool_call_id
                 messages.append(msg_data)
             if wrapper.child is not None:
                 cur = wrapper.children[wrapper.child]
@@ -720,3 +822,44 @@ class App:
     def edit_user_message(self, chat_uuid: str, msg_id: int, new_content: str) -> bool:
         """Edit a user message by branching."""
         return self.chats.edit_user_message_by_uuid(chat_uuid, msg_id, new_content)
+    def get_tools_config(self) -> dict:
+        """Returns the tools configuration dict."""
+        tools = self.cfg.data.get("tools", {})
+        if not isinstance(tools, dict):
+            tools = {}
+        return tools
+    def set_tool_enabled(self, tool_id: str, enabled: bool):
+        """Enable or disable a specific tool."""
+        tools = self.cfg.data.get("tools", {})
+        if not isinstance(tools, dict):
+            tools = {}
+        if tool_id not in tools:
+            tools[tool_id] = {}
+        tools[tool_id]["enabled"] = bool(enabled)
+        self.cfg.data["tools"] = tools
+        self.cfg.save()
+    def _get_enabled_tools(self) -> list:
+        """Build the OpenAI-compatible tools list from enabled tools config."""
+        tools_config = self.get_tools_config()
+        tools_list = []
+        if tools_config.get("get_current_time", {}).get("enabled", True):
+            tools_list.append({
+                "type": "function",
+                "function": {
+                    "name": "get_current_time",
+                    "description": "Get the current date and time. Returns the current date and time in a readable format.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                }
+            })
+        return tools_list
+    def _execute_tool(self, tool_call: dict) -> str:
+        """Execute a tool call and return the result string."""
+        name = tool_call.get("function", {}).get("name", "")
+        if name == "get_current_time":
+            now = datetime.datetime.now()
+            return now.strftime("%Y-%m-%d %H:%M:%S")
+        return f"Error: unknown tool '{name}'"
