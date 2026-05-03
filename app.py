@@ -270,7 +270,7 @@ class Chat:
         return self.msg_tree.get_last_msg_id()
     def ends_with_assistant(self):
         return self.msg_tree.ends_with_assistant()
-    def complete_last_assistant(self, idx : int, msg : msgs.AssistantMsg | msgs.ReasonAssistantMsg):
+    def complete_last_assistant(self, idx : int, msg : msgs.AssistantMsg):
         self.msg_tree.complete_last_assistant(idx, msg)
 
 class Chats:
@@ -376,10 +376,10 @@ class Chats:
         content = "".join(contents)
         if False and ends_with_assistant:
             last_msg_id = chat.get_last_msg_id()
-            if reason: chat.complete_last_assistant(last_msg_id, msgs.ReasonAssistantMsg(content, reason, interrupt))
+            if reason: chat.complete_last_assistant(last_msg_id, msgs.AssistantMsg(content, interrupt, reason=reason))
             else: chat.complete_last_assistant(last_msg_id, msgs.AssistantMsg(content, interrupt))
         else:
-            if reason: chat.append(msgs.ReasonAssistantMsg(content, reason, interrupt))
+            if reason: chat.append(msgs.AssistantMsg(content, interrupt, reason=reason))
             else: chat.append(msgs.AssistantMsg(content, interrupt))
         self._save_chat(chat)
     def stream_message(self, msg: str, chat_uuid: str | None = None, files: list[dict] | None = None, language: str = "en", tools: list | None = None, execute_tool: Callable | None = None):
@@ -411,6 +411,7 @@ class Chats:
         system_prompt = system_prompt.replace("{{language}}", language)
         client_disconnected = False
         max_tool_rounds = 10
+        total_usage = {}
         for tool_round in range(max_tool_rounds + 1):
             gen = self.providers.generate(chat.provider_index, chat.provider_model, thinking_stage=chat.thinking_stage)
             if gen is None:
@@ -438,6 +439,15 @@ class Chats:
                     if i[0] == "content":
                         contents.append(i[1])
                         yield {"type": "content", "content": i[1]}
+                    if i[0] == "usage":
+                        yield {"type": "usage", "usage": i[1]}
+                        u = i[1]
+                        for k in ("prompt_tokens", "completion_tokens", "total_tokens"):
+                            total_usage[k] = total_usage.get(k, 0) + u.get(k, 0)
+                        details = u.get("completion_tokens_details", {})
+                        if details:
+                            d = total_usage.setdefault("completion_tokens_details", {})
+                            d["reasoning_tokens"] = d.get("reasoning_tokens", 0) + details.get("reasoning_tokens", 0)
             except GeneratorExit:
                 client_disconnected = True
                 break
@@ -454,8 +464,7 @@ class Chats:
                 # Save the tool call message
                 combined_content = "".join(contents)
                 combined_reason = "".join(reasons)
-                tc_msg = msgs.ToolCallMsg(tool_calls, reason=combined_reason)
-                tc_msg.content = combined_content
+                tc_msg = msgs.AssistantMsg(combined_content, interrupted=False, usage=total_usage, reason=combined_reason, tool_calls=tool_calls)
                 chat.append(tc_msg)
                 # Execute each tool and append results
                 yield {"type": "tool_calls", "tool_calls": tool_calls}
@@ -472,9 +481,9 @@ class Chats:
             interrupted = client_disconnected or api_error
             if reason or content:
                 if reason:
-                    chat.append(msgs.ReasonAssistantMsg(content, reason, interrupted))
+                    chat.append(msgs.AssistantMsg(content, interrupted, total_usage, reason=reason))
                 else:
-                    chat.append(msgs.AssistantMsg(content, interrupted))
+                    chat.append(msgs.AssistantMsg(content, interrupted, total_usage))
                 self._save_chat(chat)
             # Only yield "done" if client is still connected
             if not client_disconnected:
@@ -785,14 +794,15 @@ class App:
             wrapper = chat.msg_tree.msg_list[cur]
             if wrapper.type in ("UserMsg", "AssistantMsg", "ReasonAssistantMsg", "ToolCallMsg", "ToolResultMsg"):
                 msg_data = {"type": wrapper.type, "content": wrapper.msg.content, "msg_id": cur}
-                if wrapper.type == "ReasonAssistantMsg":
-                    msg_data["reason"] = wrapper.msg.reason
-                if wrapper.type == "UserMsg" and wrapper.msg.files:
-                    msg_data["files"] = wrapper.msg.files
-                if wrapper.type == "ToolCallMsg":
-                    msg_data["tool_calls"] = wrapper.msg.tool_calls
+                if isinstance(wrapper.msg, msgs.AssistantMsg):
                     if wrapper.msg.reason:
                         msg_data["reason"] = wrapper.msg.reason
+                    if wrapper.msg.usage:
+                        msg_data["usage"] = wrapper.msg.usage
+                    if wrapper.msg.tool_calls:
+                        msg_data["tool_calls"] = wrapper.msg.tool_calls
+                if wrapper.type == "UserMsg" and wrapper.msg.files:
+                    msg_data["files"] = wrapper.msg.files
                 if wrapper.type == "ToolResultMsg":
                     msg_data["tool_call_id"] = wrapper.msg.tool_call_id
                 messages.append(msg_data)

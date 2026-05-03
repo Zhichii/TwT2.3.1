@@ -473,11 +473,11 @@ body.sidebar-collapsed .main {
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 .msg.assistant .bubble {
-  background: var(--assistant-bubble);
-  border: 1px solid var(--gray-800);
+  background: transparent;
+  border: none;
   display: inline-block;
-  padding: 10px 18px;
-  border-radius: 20px 20px 20px 6px;
+  padding: 4px 8px;
+  border-radius: 0;
   font-size: 0.9rem;
   color: var(--gray-200);
   max-width: 100%;
@@ -1302,6 +1302,12 @@ body.sidebar-collapsed .main {
   white-space: pre-wrap;
   word-break: break-word;
 }
+.usage-info {
+  font-size: 0.7rem;
+  color: var(--gray-600);
+  padding: 4px 0px 12px 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
 /* Toggle switch */
 .toggle-row {
   display: flex;
@@ -1398,6 +1404,73 @@ body.sidebar-collapsed .main {
 .think-default-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .think-default-row label { margin: 0; white-space: nowrap; font-size: 0.75rem; }
 .think-default-row select { flex: 1; }
+
+/* ==================== Tool Call & Thinking Cards ==================== */
+.tc-card {
+  background: #0a0a0a;
+  border: 1px solid #1c1c1c;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+/* Stacked cards: merge borders */
+.tc-card + .tc-card {
+  margin-top: -1px;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+}
+/* First card in a stack: remove bottom radius */
+.tc-card:has(+ .tc-card) {
+  border-radius: 10px 10px 0 0;
+  margin-bottom: 0;
+}
+/* Middle card in a stack of 3+: flat all around */
+.tc-card + .tc-card:has(+ .tc-card) {
+  border-radius: 0;
+}
+.tc-card:hover { border-color: #2a2a2a; }
+.tc-card.collapsed .tc-body {
+  max-height: 0;
+}
+.tc-card.collapsed .tc-arrow { transform: rotate(-90deg); }
+.tc-header {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  cursor: pointer; user-select: none; transition: background 0.15s;
+}
+.tc-header:hover { background: rgba(255,255,255,0.015); }
+.tc-icon { flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+.tc-icon svg { width: 16px; height: 16px; fill: currentColor; }
+.tc-title { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
+.tc-extra { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.65rem; color: var(--gray-500); margin-left: 2px; }
+.tc-badge { font-size: 0.6rem; color: var(--gray-500); flex-shrink: 0; background: #141414; padding: 1px 6px; border-radius: 8px; }
+.tc-arrow { flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--gray-500); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.tc-arrow svg { width: 14px; height: 14px; fill: currentColor; }
+.tc-body {
+  max-height: 2000px;
+  overflow: hidden;
+  transition: max-height 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              border-top-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0 12px;
+  border-top: 1px solid #181818;
+  opacity: 1;
+}
+.tc-body-inner { padding: 10px 0 12px; font-size: 0.8rem; line-height: 1.55; color: var(--gray-400); white-space: pre-wrap; }
+
+/* Thinking card */
+.tc-thinking .tc-icon { color: #c8a050; }
+.tc-thinking .tc-title { color: #c8a050; }
+.tc-thinking .tc-body-inner { color: #908570; }
+
+/* Tool cards */
+.tc-tool-get_current_time .tc-icon { color: #6080c0; }
+.tc-tool-get_current_time .tc-title { color: #7090c0; }
+.tc-tool-search .tc-icon { color: #50a080; }
+.tc-tool-search .tc-title { color: #60b090; }
+.tc-tool .tc-icon { color: #608080; }
+.tc-tool .tc-title { color: #70a0a0; }
 </style>
 </head>
 <body>
@@ -1750,7 +1823,7 @@ const i18n = {
   'stage.think_label': { zh: '思考', en: 'THINKING', ja: '思考' },
   'function_bar.label': { zh: '功能区', en: 'FUNCTIONS', ja: '機能' },
   'stage.thinking': { zh: '思考中...', en: 'Thinking...', ja: '思考中...' },
-  'stage.reasoning': { zh: '推理过程（点击展开）', en: 'Reasoning (click)', ja: '推論過程（クリック）' },
+  'stage.reasoning': { zh: '推理过程', en: 'Reasoning', ja: '推論過程' },
   'thought_process': { zh: '思考过程', en: 'Thought process', ja: '思考プロセス' },
   'language.zh': { zh: '中文', en: 'Chinese', ja: '中国語' },
   'language.en': { zh: '英文', en: 'English', ja: '英語' },
@@ -1758,8 +1831,9 @@ const i18n = {
   'settings.tools': { zh: '工具', en: 'Tools', ja: 'ツール' },
   'settings.tools.get_current_time': { zh: '获取当前时间', en: 'Get Current Time', ja: '現在時刻を取得' },
   'settings.tools.get_current_time.desc': { zh: '允许模型获取当前准确时间和日期。', en: 'Allow the model to get the current accurate date and time.', ja: 'モデルが現在の正確な日時を取得できるようにします。' },
-  'tool.tool_call': { zh: '🔧 工具调用：{name}', en: '🔧 Tool call: {name}', ja: '🔧 ツール呼び出し：{name}' },
-  'tool.tool_result': { zh: '→ 结果：{result}', en: '→ Result: {result}', ja: '→ 結果：{result}' },
+  'tool.tool_call': { zh: '工具调用：{name}', en: 'Tool call: {name}', ja: 'ツール呼び出し：{name}' },
+  'tool.tool_result': { zh: '结果：{result}', en: 'Result: {result}', ja: '結果：{result}' },
+  'tool.usage': { zh: '↑{p} ↓{c} ∑{t} tokens', en: '↑{p} ↓{c} ∑{t} tokens', ja: '↑{p} ↓{c} ∑{t} tokens' },
 };
 function t(key, ...args) {
   const lang = localStorage.getItem(LANG_KEY) || 'en';
@@ -1804,6 +1878,71 @@ function applyI18nToDOM() {
   document.querySelectorAll('[data-i18n-title]').forEach(el => {
     el.title = t(el.getAttribute('data-i18n-title'));
   });
+}
+
+// ==================== SVG Icons & TC Card Helper ====================
+const TC_ICONS = {
+  thinking: '<svg viewBox="0 0 1024 1024"><path d="M725.205333 166.656A320 320 0 0 0 194.773333 363.477333a317.781333 317.781333 0 0 0 99.285334 275.968 222.72 222.72 0 0 1 75.818666 162.346667v5.717333A131.328 131.328 0 0 0 501.077333 938.666667h22.016a131.328 131.328 0 0 0 131.2-131.2v-19.498667a189.269333 189.269333 0 0 1 68.693334-142.250667 319.744 319.744 0 0 0 2.218666-479.146667zM523.093333 867.584h-22.016a60.16 60.16 0 0 1-60.117333-60.074667l-0.256-11.008h142.506667v11.008a60.16 60.16 0 0 1-60.117334 60.074667z m152.917334-275.2A272.64 272.64 0 0 0 591.957333 725.333333h-44.330666v-255.445333a106.666667 106.666667 0 0 0 71.125333-100.096 35.584 35.584 0 1 0-71.125333 0 35.584 35.584 0 0 1-71.082667 0 35.584 35.584 0 1 0-71.125333 0 106.666667 106.666667 0 0 0 71.125333 100.096V725.333333h-47.018667a307.029333 307.029333 0 0 0-87.04-137.984 248.874667 248.874667 0 0 1 169.941334-430.933333 246.101333 246.101333 0 0 1 165.376 63.232 248.661333 248.661333 0 0 1-1.706667 372.693333h-0.085333z" fill="currentColor"/></svg>',
+  search: '<svg viewBox="0 0 1024 1024"><path d="M491.52 155.648a348.16 348.16 0 0 1 270.86848 566.8864l123.82208 123.86304a36.864 36.864 0 1 1-52.10112 52.10112l-123.86304-123.82208A348.16 348.16 0 1 1 491.52 155.648z m0 622.592a274.432 274.432 0 1 0 0-548.864 274.432 274.432 0 0 0 0 548.864z" fill="currentColor"/></svg>',
+  clock: '<svg viewBox="0 0 1024 1024"><path d="M512 85.333333c235.52 0 426.666667 191.146667 426.666667 426.666667s-191.146667 426.666667-426.666667 426.666667S85.333333 747.52 85.333333 512 276.48 85.333333 512 85.333333z m0 85.333334c-188.416 0-341.333333 152.917333-341.333333 341.333333s152.917333 341.333333 341.333333 341.333333 341.333333-152.917333 341.333333-341.333333-152.917333-341.333333-341.333333-341.333333z m21.333333 106.666666v230.4l162.133334 162.133334-60.16 60.16L448 524.8V277.333333h85.333333z" fill="currentColor"/></svg>',
+  tool: '<svg viewBox="0 0 1024 1024"><path d="M512 85.333333c235.52 0 426.666667 191.146667 426.666667 426.666667s-191.146667 426.666667-426.666667 426.666667S85.333333 747.52 85.333333 512 276.48 85.333333 512 85.333333z m0 85.333334c-188.416 0-341.333333 152.917333-341.333333 341.333333s152.917333 341.333333 341.333333 341.333333 341.333333-152.917333 341.333333-341.333333-152.917333-341.333333-341.333333-341.333333z m-29.866667 195.626666l204.8 110.506667c18.432 9.941333 18.432 35.84 0 45.738667l-204.8 110.506667c-18.432 9.984-40.106667-2.218667-40.106666-22.826667V303.786667c0-20.608 21.674667-32.810667 40.106666-22.826667z" fill="currentColor"/></svg>',
+};
+const TC_ARROW = '<svg viewBox="0 0 1024 1024"><path d="M681.00096 549.23264a36.864 36.864 0 0 0-0.08192-52.0192L395.22304 211.47648a36.864 36.864 0 1 0-52.14208 52.10112l259.6864 259.72736-259.76832 261.69344a36.864 36.864 0 0 0 52.30592 51.93728l285.696-287.744z" fill="currentColor"/></svg>';
+
+function getToolIcon(name) {
+  const key = (name || '').toLowerCase();
+  if (key.includes('search') || key.includes('web')) return TC_ICONS.search;
+  if (key.includes('time') || key.includes('clock') || key.includes('date')) return TC_ICONS.clock;
+  if (key.includes('think') || key.includes('reason')) return TC_ICONS.thinking;
+  return TC_ICONS.tool;
+}
+function getToolCardClass(name) {
+  const key = (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  return 'tc-tool-' + key;
+}
+
+function createTCCard(typeClass, iconHtml, title, extraHtml, collapsed) {
+  const card = document.createElement('div');
+  card.className = 'tc-card' + (collapsed ? ' collapsed' : '') + ' ' + typeClass;
+  const header = document.createElement('div');
+  header.className = 'tc-header';
+  header.innerHTML = '<div class="tc-icon">' + iconHtml + '</div>'
+    + '<div class="tc-title">' + title + '</div>'
+    + (extraHtml ? '<div class="tc-extra">' + extraHtml + '</div>' : '')
+    + '<div class="tc-arrow">' + TC_ARROW + '</div>';
+  const body = document.createElement('div');
+  body.className = 'tc-body';
+  body.innerHTML = '<div class="tc-body-inner"></div>';
+  header.addEventListener('click', function() {
+    if (card.classList.contains('collapsed')) {
+      // --- Expand ---
+      card.classList.remove('collapsed');
+      body.style.maxHeight = 'none';
+      var realH = body.scrollHeight;
+      body.style.maxHeight = '0';
+      requestAnimationFrame(function() {
+        body.style.maxHeight = realH + 'px';
+        clearTimeout(body._expandTimer);
+        body._expandTimer = setTimeout(function() {
+          // DON'T clear maxHeight — keep pinned to actual height
+          // so next collapse reads curH == realH and avoids CSS 2000px jump
+        }, 250);
+      });
+    } else {
+      // --- Collapse ---
+      var curH = body.scrollHeight;
+      body.style.maxHeight = curH + 'px';
+      requestAnimationFrame(function() {
+        body.style.maxHeight = '0';
+        requestAnimationFrame(function() {
+          card.classList.add('collapsed');
+        });
+      });
+    }
+  });
+  card.appendChild(header);
+  card.appendChild(body);
+  return card;
 }
 // Init language
 (function() {
@@ -1977,54 +2116,76 @@ function updateMessages(messages) {
   container.innerHTML = '';
   let prevType = '';
   messages.forEach(m => {
-    if (m.type === 'ReasonAssistantMsg') {
-      appendAssistantMsg(m.content, m.reason || '', false);
-    } else if (m.type === 'AssistantMsg') {
-      appendAssistantMsg(m.content, '', false);
+    if (m.type === 'AssistantMsg' || m.type === 'ReasonAssistantMsg' || m.type === 'ToolCallMsg') {
+      if (m.tool_calls) {
+        // Tool call round — reuse/create assistant container
+        let div = container.querySelector('.msg.assistant:last-child');
+        if (!div || prevType === 'UserMsg') {
+          div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true';
+          container.appendChild(div);
+        } else if (!div.dataset.streaming) {
+          div.dataset.streaming = 'true';
+        }
+        // 1. 思维链
+        if (m.reason) {
+          const card = createTCCard('tc-thinking', TC_ICONS.thinking, t('stage.reasoning'), '', true);
+          const inner = card.querySelector('.tc-body-inner');
+          if (inner) inner.textContent = m.reason;
+          div.appendChild(card);
+        }
+        // 2. 输出
+        if (m.content) {
+          const bubble = document.createElement('div'); bubble.className = 'bubble'; div.appendChild(bubble);
+          bubble.dataset.raw = m.content;
+          bubble.innerHTML = renderMarkdown(m.content);
+        }
+        // 3. token数量
+        if (m.usage) renderUsage(div, m.usage);
+        // 4. 工具调用
+        for (const tc of (m.tool_calls || [])) {
+          const name = tc.function?.name || '?';
+          const iconHtml = getToolIcon(name);
+          const card = createTCCard(getToolCardClass(name) + ' tc-tool', iconHtml, name, '', true);
+          div.appendChild(card);
+        }
+      } else {
+        // Normal or reasoning assistant message.
+        // After tool calls, append to the same container (matching streaming behavior).
+        const lastDiv = container.querySelector('.msg.assistant:last-child');
+        const hasToolContent = lastDiv && (lastDiv.querySelector('.tc-card') || lastDiv.querySelector('.tool-call') || lastDiv.querySelector('.tool-result'));
+        if (hasToolContent) {
+          if (m.reason) {
+            const card = createTCCard('tc-thinking', TC_ICONS.thinking, t('stage.reasoning'), '', true);
+            const inner = card.querySelector('.tc-body-inner');
+            if (inner) inner.textContent = m.reason;
+            lastDiv.appendChild(card);
+          }
+          if (m.content) {
+            const bubble = document.createElement('div'); bubble.className = 'bubble'; lastDiv.appendChild(bubble);
+            bubble.dataset.raw = m.content;
+            bubble.innerHTML = renderMarkdown(m.content);
+          }
+          if (m.usage) renderUsage(lastDiv, m.usage);
+        } else {
+          appendAssistantMsg(m.content, m.reason || '', false);
+          if (m.usage) renderUsage(container.querySelector('.msg.assistant:last-child'), m.usage);
+        }
+      }
     } else if (m.type === 'UserMsg') {
       appendUserMsg(m.content, m.msg_id, m.files);
-    } else if (m.type === 'ToolCallMsg') {
-      // Reuse last assistant msg (same interaction) or create new (after UserMsg)
-      let div = container.querySelector('.msg.assistant:last-child');
-      if (!div || prevType === 'UserMsg') {
-        div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true';
-        container.appendChild(div);
-      } else if (!div.dataset.streaming) {
-        div.dataset.streaming = 'true';
-      }
-      // ToolCallMsg is always a new round — create a new bubble for its content
-      if (m.content) {
-        const bubble = document.createElement('div'); bubble.className = 'bubble'; div.appendChild(bubble);
-        bubble.dataset.raw = m.content;
-        bubble.innerHTML = renderMarkdown(m.content);
-        // Insert reason toggle before this new bubble
-        if (m.reason) {
-          const toggle = document.createElement('div'); toggle.className = 'reason-toggle open';
-          toggle.innerHTML = '<div class="reason-header">' + t('thought_process') + '</div><div class="reason-body"></div>';
-          toggle.querySelector('.reason-header').onclick = () => toggle.classList.toggle('open');
-          toggle.querySelector('.reason-body').textContent = m.reason;
-          bubble.parentNode.insertBefore(toggle, bubble);
-        }
-      } else if (m.reason) {
-        // No content but has reasoning — just append toggle at end
-        const toggle = document.createElement('div'); toggle.className = 'reason-toggle open';
-        toggle.innerHTML = '<div class="reason-header">' + t('thought_process') + '</div><div class="reason-body"></div>';
-        toggle.querySelector('.reason-header').onclick = () => toggle.classList.toggle('open');
-        toggle.querySelector('.reason-body').textContent = m.reason;
-        div.appendChild(toggle);
-      }
-      for (const tc of (m.tool_calls || [])) {
-        const name = tc.function?.name || '?';
-        const tcDiv = document.createElement('div'); tcDiv.className = 'tool-call';
-        tcDiv.textContent = t('tool.tool_call', {name});
-        div.appendChild(tcDiv);
-      }
     } else if (m.type === 'ToolResultMsg') {
       const div = container.querySelector('.msg.assistant:last-child');
       if (div) {
-        const resultEl = document.createElement('div'); resultEl.className = 'tool-result';
-        resultEl.textContent = t('tool.tool_result', {result: m.content || ''});
-        div.appendChild(resultEl);
+        const cards = div.querySelectorAll('.tc-card.tc-tool');
+        const lastCard = cards[cards.length - 1];
+        if (lastCard) {
+          const inner = lastCard.querySelector('.tc-body-inner');
+          if (inner) { inner.textContent = m.content || ''; }
+        } else {
+          const resultEl = document.createElement('div'); resultEl.className = 'tool-result';
+          resultEl.textContent = t('tool.tool_result', {result: m.content || ''});
+          div.appendChild(resultEl);
+        }
       }
     }
     prevType = m.type;
@@ -2083,7 +2244,7 @@ function appendAssistantMsg(text, reason, isStreamingFlag) {
   // If last child is a tool element, create a new bubble for this content
   const lastChild = div.lastElementChild;
   let targetBubble;
-  if (lastChild && (lastChild.classList.contains('tool-call') || lastChild.classList.contains('tool-result'))) {
+  if (lastChild && (lastChild.classList.contains('tc-card') || lastChild.classList.contains('tool-call') || lastChild.classList.contains('tool-result') || lastChild.classList.contains('reason-toggle'))) {
     targetBubble = document.createElement('div'); targetBubble.className = 'bubble'; div.appendChild(targetBubble);
   } else {
     const bubbles = div.querySelectorAll('.bubble');
@@ -2092,13 +2253,10 @@ function appendAssistantMsg(text, reason, isStreamingFlag) {
   if (!targetBubble) { targetBubble = document.createElement('div'); targetBubble.className = 'bubble'; div.appendChild(targetBubble); }
   const firstBubble = div.querySelector('.bubble');
   if (reason) {
-    const toggle = document.createElement('div');
-    toggle.className = 'reason-toggle open';
-    toggle.innerHTML = '<div class="reason-header">' + t('thought_process') + '</div><div class="reason-body"></div>';
-    toggle.querySelector('.reason-header').onclick = () => toggle.classList.toggle('open');
-    targetBubble.parentNode.insertBefore(toggle, targetBubble);
-    const bodyElem = toggle.querySelector('.reason-body');
-    bodyElem.textContent = reason;
+    const card = createTCCard('tc-thinking', TC_ICONS.thinking, t('stage.reasoning'), '', true);
+    targetBubble.parentNode.insertBefore(card, targetBubble);
+    const inner = card.querySelector('.tc-body-inner');
+    if (inner) inner.textContent = reason;
   }
   const raw = targetBubble.dataset.raw || '';
   const newRaw = raw + text;
@@ -2115,6 +2273,12 @@ function appendAssistantMsg(text, reason, isStreamingFlag) {
 }
 
 function scrollToBottom() { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; }
+function renderUsage(div, usage) {
+  if (!usage || !usage.total_tokens) return;
+  let el = div.querySelector('.usage-info');
+  if (!el) { el = document.createElement('div'); el.className = 'usage-info'; div.appendChild(el); }
+  el.textContent = t('tool.usage', {p: usage.prompt_tokens || 0, c: usage.completion_tokens || 0, t: usage.total_tokens || 0});
+}
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function renderMarkdown(text) {
   let html = text;
@@ -2272,28 +2436,26 @@ function handleStreamEvent(event) {
       div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true';
       container.appendChild(div);
     }
-    const toggle = document.createElement('div'); toggle.className = 'reason-toggle open';
-    toggle.innerHTML = '<div class="reason-header">' + t('stage.thinking') + '</div><div class="reason-body"></div>';
-    toggle.querySelector('.reason-header').onclick = () => toggle.classList.toggle('open');
-    div.appendChild(toggle);
+    const card = createTCCard('tc-thinking', TC_ICONS.thinking, t('stage.thinking'), '', true);
+    div.appendChild(card);
     scrollToBottom();
   }
   if (event.type === 'reason') {
-    const toggles = container.querySelectorAll('.msg.assistant:last-child .reason-toggle');
-    const toggle = toggles[toggles.length - 1];
-    if (toggle) { const body = toggle.querySelector('.reason-body'); if (body) body.textContent += event.content; scrollToBottom(); }
+    const cards = container.querySelectorAll('.msg.assistant:last-child .tc-card.tc-thinking');
+    const card = cards[cards.length - 1];
+    if (card) { const inner = card.querySelector('.tc-body-inner'); if (inner) { inner.textContent += event.content; const tb = card.querySelector('.tc-body'); if (tb && !card.classList.contains('collapsed')) { tb.style.maxHeight = tb.scrollHeight + 'px'; } } scrollToBottom(); }
   }
   if (event.type === 'reason_end') {
-    const toggles = container.querySelectorAll('.msg.assistant:last-child .reason-toggle');
-    const toggle = toggles[toggles.length - 1];
-    if (toggle) toggle.querySelector('.reason-header').textContent = t('stage.reasoning');
+    const cards = container.querySelectorAll('.msg.assistant:last-child .tc-card.tc-thinking');
+    const card = cards[cards.length - 1];
+    if (card) { const title = card.querySelector('.tc-title'); if (title) title.textContent = t('stage.reasoning'); }
   }
   if (event.type === 'content') {
     let div = container.querySelector('.msg.assistant:last-child');
     if (!div || !div.dataset.streaming) { div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true'; container.appendChild(div); }
     let bubble;
     const lastChild = div.lastElementChild;
-    if (lastChild && (lastChild.classList.contains('tool-call') || lastChild.classList.contains('tool-result') || lastChild.classList.contains('reason-toggle'))) {
+    if (lastChild && (lastChild.classList.contains('tc-card') || lastChild.classList.contains('tool-call') || lastChild.classList.contains('tool-result') || lastChild.classList.contains('reason-toggle'))) {
       bubble = document.createElement('div'); bubble.className = 'bubble'; div.appendChild(bubble);
     } else {
       const bubbles = div.querySelectorAll('.bubble');
@@ -2313,18 +2475,47 @@ function handleStreamEvent(event) {
     if (!div || !div.dataset.streaming) { div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true'; container.appendChild(div); }
     for (const tc of (event.tool_calls || [])) {
       const name = tc.function?.name || '?';
-      const tcDiv = document.createElement('div'); tcDiv.className = 'tool-call';
-      tcDiv.textContent = t('tool.tool_call', {name});
-      div.appendChild(tcDiv);
+      const iconHtml = getToolIcon(name);
+      const card = createTCCard(getToolCardClass(name) + ' tc-tool', iconHtml, name, '', true);
+      div.appendChild(card);
     }
     scrollToBottom();
   }
   if (event.type === 'tool_result') {
     const div = container.querySelector('.msg.assistant:last-child');
     if (div) {
-      const resultEl = document.createElement('div'); resultEl.className = 'tool-result';
-      resultEl.textContent = t('tool.tool_result', {result: event.content || ''});
-      div.appendChild(resultEl);
+      const cards = div.querySelectorAll('.tc-card.tc-tool');
+      const lastCard = cards[cards.length - 1];
+      if (lastCard) {
+        const inner = lastCard.querySelector('.tc-body-inner');
+        if (inner) {
+          const content = event.content || '';
+          if (content.length > 500) {
+            inner.textContent = content.slice(0, 500) + '...';
+          } else {
+            inner.textContent = content;
+          }
+        }
+      } else {
+        const resultEl = document.createElement('div'); resultEl.className = 'tool-result';
+        resultEl.textContent = t('tool.tool_result', {result: event.content || ''});
+        div.appendChild(resultEl);
+      }
+      scrollToBottom();
+    }
+  }
+  if (event.type === 'usage') {
+    const div = container.querySelector('.msg.assistant:last-child');
+    if (div && event.usage) {
+      let usageEl = div.querySelector('.usage-info');
+      if (!usageEl) {
+        usageEl = document.createElement('div'); usageEl.className = 'usage-info';
+        const firstTool = div.querySelector('.tc-card.tc-tool');
+        if (firstTool) div.insertBefore(usageEl, firstTool);
+        else div.appendChild(usageEl);
+      }
+      const u = event.usage;
+      usageEl.textContent = t('tool.usage', {p: u.prompt_tokens || 0, c: u.completion_tokens || 0, t: u.total_tokens || 0});
       scrollToBottom();
     }
   }

@@ -21,7 +21,7 @@ class MsgBase:
         content = safe_get(data, str, "content", "message", "")
         role = safe_get(data, str, "role", "message", "user")
         if role == "user": return UserMsg.load(data)
-        if role == "assistant": return AssistantMsg.load(data) # Can be ReasonAssistantMsg or ToolCallMsg
+        if role == "assistant": return AssistantMsg.load(data)
         if role == "tool": return ToolResultMsg.load(data)
         # else:
         return MsgBase(role, content)
@@ -42,70 +42,34 @@ class UserMsg(MsgBase):
             files = []
         return UserMsg(content, files)
 class AssistantMsg(MsgBase):
-    def __init__(self, content: str = "", interrupted : bool = False):
+    """Unified assistant message: supports content, reason, tool_calls, usage."""
+    def __init__(self, content: str = "", interrupted: bool = False,
+                 usage: dict | None = None, reason: str = "",
+                 tool_calls: list[dict] | None = None):
         super().__init__("assistant", content)
         self.interrupted = interrupted
+        self.usage = usage or None
+        self.reason = reason
+        self.tool_calls = tool_calls or []
     def store(self) -> dict[str, Any]:
         data = super().store()
         data["interrupted"] = self.interrupted
-        return data
-    @staticmethod
-    def load(data : dict) -> "AssistantMsg | ReasonAssistantMsg | ToolCallMsg":
-        content = safe_get(data, str, "content", "message", "")
-        interrupted = safe_get(data, bool, "interrupted", "message", False)
-        if "tool_calls" in data:
-            tool_calls = safe_get(data, list, "tool_calls", "message", [])
-            msg = ToolCallMsg(tool_calls, interrupted)
-            msg.content = content
-            return msg
-        if "reason" not in data:
-            return AssistantMsg(content, interrupted)
-        else:
-            reason = safe_get(data, str, "reason", "message", "")
-            return ReasonAssistantMsg(content, reason, interrupted)
-        # 特殊处理reason字段的原因：这类似一个Fallback机制
-class ReasonAssistantMsg(AssistantMsg):
-    reason: str = ""
-    def __init__(self, content: str = "", reason: str = "", interrupted : bool = False):
-        super().__init__(content)
-        self.reason = reason
-        self.interrupted = interrupted
-    def store(self) -> dict[str, Any]:
-        data = super().store()
+        data["usage"] = self.usage
         data["reason"] = self.reason
-        return data
-    @staticmethod
-    def load(data : dict) -> "AssistantMsg | ReasonAssistantMsg":
-        content = safe_get(data, str, "content", "message", "")
-        interrupted = safe_get(data, bool, "interrupted", "message", False)
-        reason = safe_get(data, str, "reason", "message", "")
-        if reason:
-            return ReasonAssistantMsg(content, reason, interrupted)
-        else:
-            return AssistantMsg(content, interrupted)
-
-class ToolCallMsg(AssistantMsg):
-    """Assistant message that contains tool calls instead of content."""
-    tool_calls: list[dict]
-    reason: str
-    def __init__(self, tool_calls: list[dict], interrupted: bool = False, reason: str = ""):
-        super().__init__("", interrupted)
-        self.tool_calls = list(tool_calls)
-        self.reason = reason
-    def store(self) -> dict[str, Any]:
-        data = super().store()
         data["tool_calls"] = list(self.tool_calls)
-        data["reason"] = self.reason
         return data
     @staticmethod
-    def load(data: dict) -> "ToolCallMsg":
+    def load(data : dict) -> "AssistantMsg":
         content = safe_get(data, str, "content", "message", "")
         interrupted = safe_get(data, bool, "interrupted", "message", False)
-        tool_calls = safe_get(data, list, "tool_calls", "message", [])
+        usage = safe_get(data, (dict, type(None)), "usage", "message", None)
         reason = safe_get(data, str, "reason", "message", "")
-        msg = ToolCallMsg(tool_calls, interrupted, reason)
-        msg.content = content
-        return msg
+        tool_calls_ = safe_get(data, list, "tool_calls", "message", [])
+        return AssistantMsg(content, interrupted, usage, reason, list(tool_calls_))
+
+# Backward-compat aliases for loading old config.json data
+ReasonAssistantMsg = AssistantMsg
+ToolCallMsg = AssistantMsg
 
 class ToolResultMsg(MsgBase):
     tool_call_id: str
@@ -140,7 +104,7 @@ class MsgTree:
         def __repr__(self) -> str:
             return str(self.store())
         def store(self) -> dict[str, Any]:
-            return {"type": self.type, 
+            return {"type": self.type,
                     "msg": self.msg.store(),
                     "time": self.time,
                     "parent": self.parent,
@@ -154,8 +118,7 @@ class MsgTree:
             if (type_ == "MsgBase"): msg_type = MsgBase
             if (type_ == "UserMsg"): msg_type = UserMsg
             if (type_ == "AssistantMsg"): msg_type = AssistantMsg
-            if (type_ == "ReasonAssistantMsg"): msg_type = ReasonAssistantMsg
-            if (type_ == "ToolCallMsg"): msg_type = ToolCallMsg
+            if (type_ in ("ReasonAssistantMsg", "ToolCallMsg")): msg_type = AssistantMsg
             if (type_ == "ToolResultMsg"): msg_type = ToolResultMsg
             if (type_ not in ("MsgBase", "UserMsg", "AssistantMsg", "ReasonAssistantMsg", "ToolCallMsg", "ToolResultMsg")):
                 log.error(t("error.load").replace("CATEGORY", t("error.load.message")).replace("TYPE", data["type"]).replace("DEFAULT","MsgBase"))
@@ -223,13 +186,13 @@ class MsgTree:
         self.msg_list.append(MsgTree.MsgWrapper(msg, parent_id))
         self.msg_list[parent_id].child = len(self.msg_list[parent_id].children) - 1
         return idx
-    def complete_last_assistant(self, idx : int, msg : AssistantMsg | ReasonAssistantMsg):
+    def complete_last_assistant(self, idx : int, msg : AssistantMsg):
         if not self.ends_with_assistant():
             return
         if 0 <= idx < len(self.msg_list):
             self.msg_list[idx].msg.content += msg.content
-            if self.msg_list[idx].type == "ReasonAssistantMsg":
-                if isinstance(msg, ReasonAssistantMsg):
+            if self.msg_list[idx].type == "AssistantMsg" or self.msg_list[idx].type == "ReasonAssistantMsg":
+                if isinstance(msg, AssistantMsg):
                     self.msg_list[idx].msg.reason += msg.reason
             self.msg_list[idx].time = time.time()
             self.msg_list[idx].msg.interrupted = msg.interrupted

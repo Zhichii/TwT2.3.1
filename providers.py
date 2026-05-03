@@ -43,33 +43,30 @@ class OpenAIProvider:
                         if f["type"].startswith("image/") and f["type"] != "image/svg+xml":
                             combined_parts.append({"type": "image_url", "image_url": {"url": f"data:{f['type']};base64,{f['data']}"}})
                     messages.append({"role": "user", "content": combined_parts})
-            if (msg.type == "AssistantMsg"):
-                # 因为prefix是DeepSeek特有的，partial是Moonshot Kimi特有的
-                if False and msg.msg.interrupted and cur == last_msg_id:
-                    messages.append({"role": "assistant", "content": msg.msg.content, "prefix": True})
-                else:
-                    messages.append({"role": "assistant", "content": msg.msg.content})
-            if (msg.type == "ReasonAssistantMsg"):
-                # 因为prefix是DeepSeek特有的，partial是Moonshot Kimi特有的
-                if False and msg.msg.interrupted and cur == last_msg_id:
-                    messages.append({"role": "assistant", "content": msg.msg.content, "reasoning_content": msg.msg.reason, "prefix": True})
-                else:
-                    messages.append({"role": "assistant", "content": msg.msg.content, "reasoning_content": msg.msg.reason})
-            if (msg.type == "ToolCallMsg"):
-                entry = {"role": "assistant", "content": msg.msg.content if msg.msg.content else None}
-                if hasattr(msg.msg, 'reason') and msg.msg.reason:
-                    entry["reasoning_content"] = msg.msg.reason
-                if hasattr(msg.msg, 'tool_calls') and msg.msg.tool_calls:
+            if (msg.type in ("AssistantMsg", "ReasonAssistantMsg", "ToolCallMsg")):
+                entry = {"role": "assistant"}
+                tc = getattr(msg.msg, 'tool_calls', None)
+                reason = getattr(msg.msg, 'reason', None) or getattr(msg.msg, 'reasoning_content', None)
+                if tc:
+                    entry["content"] = msg.msg.content if msg.msg.content else None
+                    if reason:
+                        entry["reasoning_content"] = reason
                     entry["tool_calls"] = []
-                    for tc in msg.msg.tool_calls:
+                    for t in tc:
                         entry["tool_calls"].append({
-                            "id": tc.get("id", ""),
+                            "id": t.get("id", ""),
                             "type": "function",
                             "function": {
-                                "name": tc.get("function", {}).get("name", ""),
-                                "arguments": tc.get("function", {}).get("arguments", "")
+                                "name": t.get("function", {}).get("name", ""),
+                                "arguments": t.get("function", {}).get("arguments", "")
                             }
                         })
+                else:
+                    entry["content"] = msg.msg.content
+                    if reason:
+                        entry["reasoning_content"] = reason
+                if False and msg.msg.interrupted and cur == last_msg_id:
+                    entry["prefix"] = True
                 messages.append(entry)
             if (msg.type == "ToolResultMsg"):
                 messages.append({
@@ -90,11 +87,25 @@ class OpenAIProvider:
         extra_body = dict(kwargs)
         if thinking_stage is not None:
             merge(extra_body, self.get_thinking_args(thinking_stage, max_tokens))
-        create_kwargs = dict(model=model, messages=messages, stream=stream, max_tokens=max_tokens, extra_body=extra_body)
+        create_kwargs = dict(model=model, messages=messages, stream=stream, max_tokens=max_tokens, extra_body=extra_body, stream_options={"include_usage": True})
         if tools:
             create_kwargs["tools"] = tools
         tool_calls_acc = {}  # index -> {id, type, function: {name, arguments}}
+        usage_data = None
         for chunk in self.client.chat.completions.create(**create_kwargs):
+            if hasattr(chunk, "usage") and chunk.usage:
+                u = chunk.usage
+                details = getattr(u, "completion_tokens_details", None)
+                usage_data = {
+                    "prompt_tokens": getattr(u, "prompt_tokens", 0),
+                    "completion_tokens": getattr(u, "completion_tokens", 0),
+                    "total_tokens": getattr(u, "total_tokens", 0),
+                    "prompt_cache_hit_tokens": getattr(u, "prompt_cache_hit_tokens", 0),
+                    "prompt_cache_miss_tokens": getattr(u, "prompt_cache_miss_tokens", 0),
+                    "completion_tokens_details": {
+                        "reasoning_tokens": getattr(details, "reasoning_tokens", 0) if details else 0
+                    }
+                }
             if hasattr(chunk, "choices") and isinstance(chunk.choices, list):
                 if len(chunk.choices) > 0:
                     delta = chunk.choices[0].delta
@@ -124,6 +135,8 @@ class OpenAIProvider:
             sorted_indices = sorted(tool_calls_acc.keys())
             tool_calls_list = [tool_calls_acc[i] for i in sorted_indices]
             yield ("tool_calls", tool_calls_list)
+        if usage_data:
+            yield ("usage", usage_data)
 
 class DeepSeekProvider(OpenAIProvider):
     def get_thinking_stages(self) -> list[str]:
@@ -196,33 +209,32 @@ class AnthropicProvider:
                         if f["type"].startswith("image/") and f["type"] != "image/svg+xml":
                             combined_parts.append({"type": "image", "source": {"type": "base64", "media_type": f["type"], "data": f["data"]}})
                     messages.append({"role": "user", "content": combined_parts})
-            if (msg.type == "AssistantMsg"):
-                messages.append({"role": "assistant", "content": msg.msg.content})
-            if (msg.type == "ReasonAssistantMsg"):
-                if isinstance(msg.msg, msgs.ReasonAssistantMsg): # 不然IDE报错
-                    messages.append({"role": "assistant", "content": msg.msg.content, "reasoning_content": msg.msg.reason})
+            if (msg.type in ("AssistantMsg", "ReasonAssistantMsg", "ToolCallMsg")):
+                tc = getattr(msg.msg, 'tool_calls', None)
+                reason = getattr(msg.msg, 'reason', None) or getattr(msg.msg, 'reasoning_content', None)
+                if tc:
+                    content_blocks = []
+                    if reason:
+                        content_blocks.append({"type": "thinking", "thinking": reason})
+                    content_text = msg.msg.content
+                    if content_text:
+                        content_blocks.append({"type": "text", "text": content_text})
+                    for t in tc:
+                        try:
+                            input_data = json.loads(t.get("function", {}).get("arguments", "{}"))
+                        except json.JSONDecodeError:
+                            input_data = {}
+                        content_blocks.append({
+                            "type": "tool_use",
+                            "id": t.get("id", ""),
+                            "name": t.get("function", {}).get("name", ""),
+                            "input": input_data
+                        })
+                    entry = {"role": "assistant", "content": content_blocks} if content_blocks else {"role": "assistant", "content": msg.msg.content}
                 else:
-                    log.error("the tag and the type are not the same")
-            if (msg.type == "ToolCallMsg"):
-                content_blocks = []
-                reason = getattr(msg.msg, 'reason', '')
-                if reason:
-                    content_blocks.append({"type": "thinking", "thinking": reason})
-                content_text = msg.msg.content
-                if content_text:
-                    content_blocks.append({"type": "text", "text": content_text})
-                for tc in getattr(msg.msg, 'tool_calls', []):
-                    try:
-                        input_data = json.loads(tc.get("function", {}).get("arguments", "{}"))
-                    except json.JSONDecodeError:
-                        input_data = {}
-                    content_blocks.append({
-                        "type": "tool_use",
-                        "id": tc.get("id", ""),
-                        "name": tc.get("function", {}).get("name", ""),
-                        "input": input_data
-                    })
-                entry = {"role": "assistant", "content": content_blocks} if content_blocks else {"role": "assistant", "content": msg.msg.content}
+                    entry = {"role": "assistant", "content": msg.msg.content}
+                    if reason:
+                        entry["reasoning_content"] = reason
                 messages.append(entry)
             if (msg.type == "ToolResultMsg"):
                 messages.append({
