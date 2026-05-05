@@ -476,7 +476,7 @@ body.sidebar-collapsed .main {
   background: transparent;
   border: none;
   display: inline-block;
-  padding: 4px 8px;
+  padding: 6px 8px;
   border-radius: 0;
   font-size: 0.9rem;
   color: var(--gray-200);
@@ -788,13 +788,17 @@ body.sidebar-collapsed .main {
 .msg:hover .msg-actions {
   opacity: 1;
 }
-.msg-actions button {
+.msg-actions button, .retry-btn {
   background: transparent;
   border: none;
   color: var(--gray-500);
   cursor: pointer;
   padding: 2px 6px;
+  font-size: 0.7rem;
+  transition: 0.15s;
 }
+.msg:hover .retry-btn { opacity: 1; }
+.msg-actions button:hover, .retry-btn:hover { color: var(--gray-200); }
 
 /* Sidebar footer */
 .sidebar-footer {
@@ -1302,11 +1306,54 @@ body.sidebar-collapsed .main {
   white-space: pre-wrap;
   word-break: break-word;
 }
+.msg-footer {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0 14px 8px;
+  font-size: 0.7rem;
+  opacity: 0;
+  transition: 0.15s;
+}
+.msg:hover .msg-footer { opacity: 1; }
+.msg-footer .retry-btn, .msg-footer .branch-btn {
+  background: transparent; border: none; color: var(--gray-500);
+  cursor: pointer; font-size: inherit; line-height: 1; padding: 2px 4px 2px 0px; border-radius: 4px;
+}
+.msg-footer .retry-btn:hover, .msg-footer .branch-btn:hover { color: var(--gray-200); }
+.msg-footer .branch-label { color: var(--gray-500); min-width: 28px; text-align: center; user-select: none; }
 .usage-info {
   font-size: 0.7rem;
-  color: var(--gray-600);
-  padding: 4px 0px 12px 4px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  color: var(--gray-500);
+  /*font-family: 'Consolas', 'Monaco', 'Courier New', monospace;*/
+  margin-left: 4px;
+}
+/* Branch indicators */
+.branch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 0 2px;
+}
+.branch-btn {
+  background: transparent;
+  border: none;
+  color: var(--gray-500);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: 0.15s;
+}
+.branch-btn:hover { color: var(--gray-200); background: var(--gray-800); }
+.branch-label {
+  font-size: 0.7rem;
+  color: var(--gray-500);
+  min-width: 36px;
+  text-align: center;
+  user-select: none;
 }
 /* Toggle switch */
 .toggle-row {
@@ -1787,6 +1834,7 @@ const i18n = {
   'chat.delete_confirm': { zh: '删除此对话？', en: 'Delete this chat?', ja: 'このチャットを削除しますか？' },
   'msg.edit': { zh: '编辑', en: 'Edit', ja: '編集' },
   'msg.edit_prompt': { zh: '编辑消息：', en: 'Edit message:', ja: 'メッセージを編集：' },
+  'msg.retry': { zh: '重试', en: 'Retry', ja: '再試行' },
   'msg.error_prefix': { zh: '错误：', en: 'Error: ', ja: 'エラー：' },
   'error.network': { zh: '网络错误：消息发送失败', en: 'Network error: failed to send message', ja: 'ネットワークエラー：メッセージ送信に失敗しました' },
   'error.stream': { zh: '流式响应连接中断', en: 'Connection lost during streaming', ja: 'ストリーミング中に接続が切れました' },
@@ -1813,18 +1861,17 @@ const i18n = {
   'type.moonshot': { zh: 'Moonshot', en: 'Moonshot', ja: 'Moonshot' },
   'type.aliyun': { zh: '阿里云', en: 'Aliyun', ja: 'Aliyun' },
   'type.anthropic': { zh: 'Anthropic', en: 'Anthropic', ja: 'Anthropic' },
-  'stage.none': { zh: '关', en: 'Off', ja: 'オフ' },
-  'stage.enabled': { zh: '开', en: 'On', ja: 'オン' },
-  'stage.high': { zh: '高', en: 'High', ja: '高' },
-  'stage.max': { zh: '最大', en: 'Max', ja: '最大' },
-  'stage.medium': { zh: '中', en: 'Medium', ja: '中' },
-  'stage.low': { zh: '低', en: 'Low', ja: '低' },
-  'stage.auto': { zh: '自动', en: 'Auto', ja: '自動' },
-  'stage.think_label': { zh: '思考', en: 'THINKING', ja: '思考' },
+  'thinking_stage.none': { zh: '关', en: 'Off', ja: 'オフ' },
+  'thinking_stage.enabled': { zh: '开', en: 'On', ja: 'オン' },
+  'thinking_stage.high': { zh: '高', en: 'High', ja: '高' },
+  'thinking_stage.max': { zh: '最大', en: 'Max', ja: '最大' },
+  'thinking_stage.medium': { zh: '中', en: 'Medium', ja: '中' },
+  'thinking_stage.low': { zh: '低', en: 'Low', ja: '低' },
+  'thinking_stage.auto': { zh: '自动', en: 'Auto', ja: '自動' },
+  'function_bar.think_label': { zh: '思考', en: 'THINKING', ja: '思考' },
   'function_bar.label': { zh: '功能区', en: 'FUNCTIONS', ja: '機能' },
   'stage.thinking': { zh: '思考中...', en: 'Thinking...', ja: '思考中...' },
-  'stage.reasoning': { zh: '推理过程', en: 'Reasoning', ja: '推論過程' },
-  'thought_process': { zh: '思考过程', en: 'Thought process', ja: '思考プロセス' },
+  'stage.reasoning': { zh: '推理过程', en: 'Thought', ja: '推論過程' },
   'language.zh': { zh: '中文', en: 'Chinese', ja: '中国語' },
   'language.en': { zh: '英文', en: 'English', ja: '英語' },
   'language.ja': { zh: '日文', en: 'Japanese', ja: '日本語' },
@@ -1833,7 +1880,7 @@ const i18n = {
   'settings.tools.get_current_time.desc': { zh: '允许模型获取当前准确时间和日期。', en: 'Allow the model to get the current accurate date and time.', ja: 'モデルが現在の正確な日時を取得できるようにします。' },
   'tool.tool_call': { zh: '工具调用：{name}', en: 'Tool call: {name}', ja: 'ツール呼び出し：{name}' },
   'tool.tool_result': { zh: '结果：{result}', en: 'Result: {result}', ja: '結果：{result}' },
-  'tool.usage': { zh: '↑{p} ↓{c} ∑{t} tokens', en: '↑{p} ↓{c} ∑{t} tokens', ja: '↑{p} ↓{c} ∑{t} tokens' },
+  'tool.usage': { zh: '用量统计：输入 {p}，输出 {c}，共计 {t} 词元', en: 'Usage: {p} input, {c} output, {t} tokens in total', ja: '↑{p} ↓{c} ∑{t} トークン' },
 };
 function t(key, ...args) {
   const lang = localStorage.getItem(LANG_KEY) || 'en';
@@ -2116,9 +2163,9 @@ function updateMessages(messages) {
   container.innerHTML = '';
   let prevType = '';
   messages.forEach(m => {
+    let msgDiv = null;
     if (m.type === 'AssistantMsg' || m.type === 'ReasonAssistantMsg' || m.type === 'ToolCallMsg') {
       if (m.tool_calls) {
-        // Tool call round — reuse/create assistant container
         let div = container.querySelector('.msg.assistant:last-child');
         if (!div || prevType === 'UserMsg') {
           div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true';
@@ -2126,6 +2173,7 @@ function updateMessages(messages) {
         } else if (!div.dataset.streaming) {
           div.dataset.streaming = 'true';
         }
+        msgDiv = div;
         // 1. 思维链
         if (m.reason) {
           const card = createTCCard('tc-thinking', TC_ICONS.thinking, t('stage.reasoning'), '', true);
@@ -2139,21 +2187,20 @@ function updateMessages(messages) {
           bubble.dataset.raw = m.content;
           bubble.innerHTML = renderMarkdown(m.content);
         }
-        // 3. token数量
-        if (m.usage) renderUsage(div, m.usage);
-        // 4. 工具调用
+        // 3. 工具调用
         for (const tc of (m.tool_calls || [])) {
           const name = tc.function?.name || '?';
           const iconHtml = getToolIcon(name);
           const card = createTCCard(getToolCardClass(name) + ' tc-tool', iconHtml, name, '', true);
           div.appendChild(card);
         }
+        // 4. 底部栏: [Retry] [<] 2/2 [>] ↑xxx ↓xxx ∑xxx tokens
+        renderFooter(div, m);
       } else {
-        // Normal or reasoning assistant message.
-        // After tool calls, append to the same container (matching streaming behavior).
         const lastDiv = container.querySelector('.msg.assistant:last-child');
         const hasToolContent = lastDiv && (lastDiv.querySelector('.tc-card') || lastDiv.querySelector('.tool-call') || lastDiv.querySelector('.tool-result'));
         if (hasToolContent) {
+          msgDiv = lastDiv;
           if (m.reason) {
             const card = createTCCard('tc-thinking', TC_ICONS.thinking, t('stage.reasoning'), '', true);
             const inner = card.querySelector('.tc-body-inner');
@@ -2165,14 +2212,17 @@ function updateMessages(messages) {
             bubble.dataset.raw = m.content;
             bubble.innerHTML = renderMarkdown(m.content);
           }
-          if (m.usage) renderUsage(lastDiv, m.usage);
+          renderFooter(lastDiv, m);
         } else {
           appendAssistantMsg(m.content, m.reason || '', false);
-          if (m.usage) renderUsage(container.querySelector('.msg.assistant:last-child'), m.usage);
+          msgDiv = container.querySelector('.msg.assistant:last-child');
+          renderFooter(msgDiv, m);
         }
       }
     } else if (m.type === 'UserMsg') {
       appendUserMsg(m.content, m.msg_id, m.files);
+      msgDiv = container.querySelector('.msg.user:last-child');
+      renderFooter(msgDiv, m);
     } else if (m.type === 'ToolResultMsg') {
       const div = container.querySelector('.msg.assistant:last-child');
       if (div) {
@@ -2227,8 +2277,114 @@ function editUserMessage(msg_id, currentText) {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({msg_id: msg_id, content: newText.trim(), uuid: currentChatUUID})
-    }).then(r => r.json()).then(data => { if (data.success) loadState(currentChatUUID); });
+    }).then(r => r.json()).then(async (data) => {
+      if (!data.success) return;
+      // Load state to show the edited message with its new branch
+      await loadState(currentChatUUID);
+      // Auto-send: trigger AI response to the edited message
+      streaming = true;
+      document.getElementById('sendBtn').style.display = 'none';
+      document.getElementById('stopBtn').style.display = 'inline-block';
+      const controller = new AbortController();
+      window._currentAbortController = controller;
+      fetch('/api/chat/send', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message: '', files: [], uuid: currentChatUUID, language: localStorage.getItem(LANG_KEY) || 'en'}),
+        signal: controller.signal
+      }).then(async (response) => {
+        if (!response.ok) { streaming = false; document.getElementById('stopBtn').style.display = 'none'; document.getElementById('sendBtn').style.display = 'inline-block'; return; }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let hadError = false;
+        try {
+          while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, {stream: true});
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try { const event = JSON.parse(line.slice(6)); if (event.type === 'error') hadError = true; handleStreamEvent(event); } catch(e) {}
+              }
+            }
+          }
+        } catch(e) { console.error(e); }
+        streaming = false;
+        document.getElementById('stopBtn').style.display = 'none';
+        document.getElementById('sendBtn').style.display = 'inline-block';
+        if (!hadError) await loadState(currentChatUUID);
+      }).catch(e => {
+        if (e.name !== 'AbortError') console.error(e);
+        streaming = false;
+        document.getElementById('stopBtn').style.display = 'none';
+        document.getElementById('sendBtn').style.display = 'inline-block';
+      });
+    });
   }
+}
+
+function switchBranch(msgId, branchIndex) {
+  if (streaming) return;
+  fetch('/api/chat/' + encodeURIComponent(currentChatUUID) + '/switch-branch', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({msg_id: msgId, branch_index: branchIndex})
+  }).then(r => r.json()).then(data => {
+    if (data.success) loadState(currentChatUUID);
+  });
+}
+function retryMessage(msgId) {
+  if (streaming) return;
+  fetch('/api/chat/' + encodeURIComponent(currentChatUUID) + '/retry', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({msg_id: msgId})
+  }).then(r => r.json()).then(async (data) => {
+    if (!data.success) return;
+    await loadState(currentChatUUID);
+    streaming = true;
+    document.getElementById('sendBtn').style.display = 'none';
+    document.getElementById('stopBtn').style.display = 'inline-block';
+    const controller = new AbortController();
+    window._currentAbortController = controller;
+    try {
+      const response = await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message: '', files: [], uuid: currentChatUUID, language: localStorage.getItem(LANG_KEY) || 'en'}),
+        signal: controller.signal
+      });
+      if (!response.ok) { streaming = false; document.getElementById('stopBtn').style.display = 'none'; document.getElementById('sendBtn').style.display = 'inline-block'; return; }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let hadError = false;
+      while (true) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, {stream: true});
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try { const event = JSON.parse(line.slice(6)); if (event.type === 'error') hadError = true; handleStreamEvent(event); } catch(e) {}
+          }
+        }
+      }
+      streaming = false;
+      document.getElementById('stopBtn').style.display = 'none';
+      document.getElementById('sendBtn').style.display = 'inline-block';
+      if (!hadError) await loadState(currentChatUUID);
+    } catch(e) {
+      if (e.name !== 'AbortError') console.error(e);
+      streaming = false;
+      document.getElementById('stopBtn').style.display = 'none';
+      document.getElementById('sendBtn').style.display = 'inline-block';
+    }
+  });
 }
 
 function appendAssistantMsg(text, reason, isStreamingFlag) {
@@ -2273,11 +2429,61 @@ function appendAssistantMsg(text, reason, isStreamingFlag) {
 }
 
 function scrollToBottom() { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; }
-function renderUsage(div, usage) {
-  if (!usage || !usage.total_tokens) return;
-  let el = div.querySelector('.usage-info');
-  if (!el) { el = document.createElement('div'); el.className = 'usage-info'; div.appendChild(el); }
-  el.textContent = t('tool.usage', {p: usage.prompt_tokens || 0, c: usage.completion_tokens || 0, t: usage.total_tokens || 0});
+function renderFooter(div, m) {
+  var isAssistant = m.type === 'AssistantMsg' || m.type === 'ReasonAssistantMsg' || m.type === 'ToolCallMsg';
+  // For user msgs: inject branch controls into .msg-actions (next to edit button)
+  if (!isAssistant) {
+    if (m.branches > 1) {
+      var actions = div.querySelector('.msg-actions');
+      if (actions) {
+        var prev = document.createElement('button');
+        prev.className = 'branch-btn'; prev.textContent = '\u2039';
+        prev.onclick = function(e) { e.stopPropagation(); switchBranch(m.msg_id, (m.active_branch - 1 + m.branches) % m.branches); };
+        actions.appendChild(prev);
+        var lbl = document.createElement('span');
+        lbl.className = 'branch-label';
+        lbl.textContent = (m.active_branch + 1) + ' / ' + m.branches;
+        actions.appendChild(lbl);
+        var next = document.createElement('button');
+        next.className = 'branch-btn'; next.textContent = '\u203A';
+        next.onclick = function(e) { e.stopPropagation(); switchBranch(m.msg_id, (m.active_branch + 1) % m.branches); };
+        actions.appendChild(next);
+      }
+    }
+    return;
+  }
+  // For assistant msgs: create a footer line
+  var line = document.createElement('div');
+  line.className = 'msg-footer';
+  // Retry button
+  var btn = document.createElement('button');
+  btn.className = 'retry-btn';
+  btn.textContent = t('msg.retry');
+  btn.onclick = function(e) { e.stopPropagation(); retryMessage(m.msg_id); };
+  line.appendChild(btn);
+  // Branch controls
+  if (m.branches > 1) {
+    var prev = document.createElement('button');
+    prev.className = 'branch-btn'; prev.textContent = '\u2039';
+    prev.onclick = function(e) { e.stopPropagation(); switchBranch(m.msg_id, (m.active_branch - 1 + m.branches) % m.branches); };
+    line.appendChild(prev);
+    var lbl = document.createElement('span');
+    lbl.className = 'branch-label';
+    lbl.textContent = (m.active_branch + 1) + ' / ' + m.branches;
+    line.appendChild(lbl);
+    var next = document.createElement('button');
+    next.className = 'branch-btn'; next.textContent = '\u203A';
+    next.onclick = function(e) { e.stopPropagation(); switchBranch(m.msg_id, (m.active_branch + 1) % m.branches); };
+    line.appendChild(next);
+  }
+  // Usage info (always create fresh, never reuse)
+  if (m.usage && m.usage.total_tokens) {
+    var usageEl = document.createElement('span');
+    usageEl.className = 'usage-info';
+    usageEl.textContent = t('tool.usage', {p: m.usage.prompt_tokens || 0, c: m.usage.completion_tokens || 0, t: m.usage.total_tokens || 0});
+    line.appendChild(usageEl);
+  }
+  if (line.children.length > 0) div.appendChild(line);
 }
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function renderMarkdown(text) {
@@ -2455,8 +2661,11 @@ function handleStreamEvent(event) {
     if (!div || !div.dataset.streaming) { div = document.createElement('div'); div.className = 'msg assistant'; div.dataset.streaming = 'true'; container.appendChild(div); }
     let bubble;
     const lastChild = div.lastElementChild;
-    if (lastChild && (lastChild.classList.contains('tc-card') || lastChild.classList.contains('tool-call') || lastChild.classList.contains('tool-result') || lastChild.classList.contains('reason-toggle'))) {
-      bubble = document.createElement('div'); bubble.className = 'bubble'; div.appendChild(bubble);
+    if (lastChild && (lastChild.classList.contains('tc-card') || lastChild.classList.contains('tool-call') || lastChild.classList.contains('tool-result') || lastChild.classList.contains('reason-toggle') || lastChild.classList.contains('msg-footer'))) {
+      bubble = document.createElement('div'); bubble.className = 'bubble';
+      // Insert before footer if footer exists
+      if (lastChild.classList.contains('msg-footer')) div.insertBefore(bubble, lastChild);
+      else div.appendChild(bubble);
     } else {
       const bubbles = div.querySelectorAll('.bubble');
       bubble = bubbles[bubbles.length - 1];
@@ -2477,7 +2686,10 @@ function handleStreamEvent(event) {
       const name = tc.function?.name || '?';
       const iconHtml = getToolIcon(name);
       const card = createTCCard(getToolCardClass(name) + ' tc-tool', iconHtml, name, '', true);
-      div.appendChild(card);
+      // Insert before footer if footer exists
+      var foot = div.querySelector('.msg-footer');
+      if (foot) div.insertBefore(card, foot);
+      else div.appendChild(card);
     }
     scrollToBottom();
   }
@@ -2507,12 +2719,15 @@ function handleStreamEvent(event) {
   if (event.type === 'usage') {
     const div = container.querySelector('.msg.assistant:last-child');
     if (div && event.usage) {
-      let usageEl = div.querySelector('.usage-info');
+      let footer = div.querySelector('.msg-footer');
+      if (!footer) {
+        footer = document.createElement('div'); footer.className = 'msg-footer';
+        div.appendChild(footer);
+      }
+      let usageEl = footer.querySelector('.usage-info');
       if (!usageEl) {
-        usageEl = document.createElement('div'); usageEl.className = 'usage-info';
-        const firstTool = div.querySelector('.tc-card.tc-tool');
-        if (firstTool) div.insertBefore(usageEl, firstTool);
-        else div.appendChild(usageEl);
+        usageEl = document.createElement('span'); usageEl.className = 'usage-info';
+        footer.appendChild(usageEl);
       }
       const u = event.usage;
       usageEl.textContent = t('tool.usage', {p: u.prompt_tokens || 0, c: u.completion_tokens || 0, t: u.total_tokens || 0});
@@ -2528,10 +2743,10 @@ async function renameChat(uuid) { document.querySelectorAll('.chat-context-menu.
 async function deleteChatAction(uuid) { document.querySelectorAll('.chat-context-menu.show').forEach(m => m.classList.remove('show')); if (!confirm(t('chat.delete_confirm'))) return; await fetch('/api/chat/delete', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({uuid}) }); await loadState(); }
 async function renameChatAI(uuid) { document.querySelectorAll('.chat-context-menu.show').forEach(m => m.classList.remove('show')); await fetch('/api/chat/' + encodeURIComponent(uuid) + '/rename-ai', { method: 'POST' }); await loadState(uuid); }
 function getStageLabel(stage) {
-  const map = { 'none':'stage.none','enabled':'stage.enabled','high':'stage.high','max':'stage.max','medium':'stage.medium','low':'stage.low','auto':'stage.auto' };
+  const map = { 'none':'thinking_stage.none','enabled':'thinking_stage.enabled','high':'thinking_stage.high','max':'thinking_stage.max','medium':'thinking_stage.medium','low':'thinking_stage.low','auto':'thinking_stage.auto' };
   return map[stage] ? t(map[stage]) : stage;
 }
-function updateFunctionBar(providers, state) { const bar = document.getElementById('functionBar'); bar.innerHTML = '<span class="label">' + t('function_bar.label') + '</span><span class="think-label">' + t('stage.think_label') + '</span>'; let show = false; const pi = state.provider_index, mi = state.provider_model; if (pi != null && mi != null) { for (const p of providers) { if (p.index === pi && p.models) { for (const m of p.models) { if (m.index === mi && m.support_thinking_control && m.thinking_stages && m.thinking_stages.length) { show = true; m.thinking_stages.forEach((stage, i) => { const btn = document.createElement('button'); btn.className = 'thinking-btn' + (i === state.thinking_stage ? ' active' : ''); btn.textContent = getStageLabel(stage); btn.onclick = () => setThinkingStage(i); bar.appendChild(btn); }); break; } } break; } } } bar.classList.toggle('show', show); }
+function updateFunctionBar(providers, state) { const bar = document.getElementById('functionBar'); bar.innerHTML = '<span class="label">' + t('function_bar.label') + '</span><span class="think-label">' + t('function_bar.think_label') + '</span>'; let show = false; const pi = state.provider_index, mi = state.provider_model; if (pi != null && mi != null) { for (const p of providers) { if (p.index === pi && p.models) { for (const m of p.models) { if (m.index === mi && m.support_thinking_control && m.thinking_stages && m.thinking_stages.length) { show = true; m.thinking_stages.forEach((stage, i) => { const btn = document.createElement('button'); btn.className = 'thinking-btn' + (i === state.thinking_stage ? ' active' : ''); btn.textContent = getStageLabel(stage); btn.onclick = () => setThinkingStage(i); bar.appendChild(btn); }); break; } } break; } } } bar.classList.toggle('show', show); }
 async function setThinkingStage(stage) { await fetch('/api/thinking/stage', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({stage, uuid: currentChatUUID}) }); await loadState(currentChatUUID); }
 function showAddProvider() { document.getElementById('providerModal').classList.add('show'); }
 function hideAddProvider() { document.getElementById('providerModal').classList.remove('show'); }

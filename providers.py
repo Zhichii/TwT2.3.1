@@ -170,6 +170,16 @@ class AliyunProvider(OpenAIProvider):
             return {"enable_thinking": True, "thinking_budget": max_tokens}
         return {}
 
+class LlamaCppProvider(OpenAIProvider):
+    def get_thinking_stages(self) -> list[str]:
+        return ["none", "enabled"]
+    def get_thinking_args(self, stage: str, max_tokens: int) -> dict:
+        if stage == "none":
+            return {"chat_template_kwargs": {"enable_thinking": False}}
+        elif stage == "enabled":
+            return {"chat_template_kwargs": {"enable_thinking": True}}
+        return {}
+
 class AnthropicProvider:
     def __init__(self, base_url : str, api_key : str):
         self.client = anthropic.Anthropic(base_url = base_url, api_key = api_key)

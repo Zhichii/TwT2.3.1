@@ -48,7 +48,7 @@ class AssistantMsg(MsgBase):
                  tool_calls: list[dict] | None = None):
         super().__init__("assistant", content)
         self.interrupted = interrupted
-        self.usage = usage or None
+        self.usage = usage
         self.reason = reason
         self.tool_calls = tool_calls or []
     def store(self) -> dict[str, Any]:

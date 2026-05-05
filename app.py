@@ -148,6 +148,7 @@ PROVIDER_CLASS_MAP = {
     "deepseek": providers.DeepSeekProvider,
     "moonshot": providers.MoonshotProvider,
     "aliyun": providers.AliyunProvider,
+    "llama-cpp": providers.LlamaCppProvider,
     "anthropic": providers.AnthropicProvider,
 }
 
@@ -464,7 +465,7 @@ class Chats:
                 # Save the tool call message
                 combined_content = "".join(contents)
                 combined_reason = "".join(reasons)
-                tc_msg = msgs.AssistantMsg(combined_content, interrupted=False, usage=total_usage, reason=combined_reason, tool_calls=tool_calls)
+                tc_msg = msgs.AssistantMsg(combined_content, interrupted=False, usage=deepcopy(total_usage) if total_usage else None, reason=combined_reason, tool_calls=tool_calls)
                 chat.append(tc_msg)
                 # Execute each tool and append results
                 yield {"type": "tool_calls", "tool_calls": tool_calls}
@@ -481,17 +482,14 @@ class Chats:
             interrupted = client_disconnected or api_error
             if reason or content:
                 if reason:
-                    chat.append(msgs.AssistantMsg(content, interrupted, total_usage, reason=reason))
+                    chat.append(msgs.AssistantMsg(content, interrupted, deepcopy(total_usage) if total_usage else None, reason=reason))
                 else:
-                    chat.append(msgs.AssistantMsg(content, interrupted, total_usage))
+                    chat.append(msgs.AssistantMsg(content, interrupted, deepcopy(total_usage) if total_usage else None))
                 self._save_chat(chat)
             # Only yield "done" if client is still connected
             if not client_disconnected:
                 yield {"type": "done", "reason": reason, "content": content, "chat_uuid": chat_uuid}
             return
-        # Max tool rounds reached
-        if not client_disconnected:
-            yield {"type": "error", "content": "Max tool call rounds reached"}
     def set_thinking_stage(self, stage: int | None, chat_uuid: str | None = None):
         if chat_uuid:
             idx = self._find_chat_index(chat_uuid)
@@ -531,6 +529,41 @@ class Chats:
             return False
         new_msg = msgs.UserMsg(new_content)
         chat.msg_tree.append_after(parent_id, new_msg)
+        self.cfg["chats"][idx] = chat.store()
+        self.cfg.save()
+        return True
+    def switch_branch_by_uuid(self, uuid_str: str, msg_id: int, branch_index: int) -> bool:
+        idx = self._find_chat_index(uuid_str)
+        if idx is None:
+            return False
+        chat = Chat.load(self.cfg["chats"][idx])
+        if msg_id < 0 or msg_id >= len(chat.msg_tree.msg_list):
+            return False
+        wrapper = chat.msg_tree.msg_list[msg_id]
+        if wrapper.parent is None:
+            return False
+        parent = chat.msg_tree.msg_list[wrapper.parent]
+        if branch_index < 0 or branch_index >= len(parent.children):
+            return False
+        parent.child = branch_index
+        self.cfg["chats"][idx] = chat.store()
+        self.cfg.save()
+        return True
+    def retry_by_uuid(self, uuid_str: str, msg_id: int) -> bool:
+        """Retry an assistant message: reset the active branch so the AI re-responds
+        to the parent user message. Does NOT create any new message."""
+        idx = self._find_chat_index(uuid_str)
+        if idx is None:
+            return False
+        chat = Chat.load(self.cfg["chats"][idx])
+        if msg_id < 0 or msg_id >= len(chat.msg_tree.msg_list):
+            return False
+        wrapper = chat.msg_tree.msg_list[msg_id]
+        if wrapper.parent is None:
+            return False
+        user_msg = chat.msg_tree.msg_list[wrapper.parent]
+        # Clear active child so tree ends at user_msg → AI re-responds
+        user_msg.child = None
         self.cfg["chats"][idx] = chat.store()
         self.cfg.save()
         return True
@@ -797,7 +830,7 @@ class App:
                 if isinstance(wrapper.msg, msgs.AssistantMsg):
                     if wrapper.msg.reason:
                         msg_data["reason"] = wrapper.msg.reason
-                    if wrapper.msg.usage:
+                    if wrapper.msg.usage is not None:
                         msg_data["usage"] = wrapper.msg.usage
                     if wrapper.msg.tool_calls:
                         msg_data["tool_calls"] = wrapper.msg.tool_calls
@@ -805,6 +838,16 @@ class App:
                     msg_data["files"] = wrapper.msg.files
                 if wrapper.type == "ToolResultMsg":
                     msg_data["tool_call_id"] = wrapper.msg.tool_call_id
+                # Branch info: check if this message's parent has multiple branches
+                if wrapper.parent is not None:
+                    parent = chat.msg_tree.msg_list[wrapper.parent]
+                    if len(parent.children) > 1:
+                        try:
+                            child_idx = parent.children.index(cur)
+                            msg_data["branches"] = len(parent.children)
+                            msg_data["active_branch"] = child_idx
+                        except ValueError:
+                            pass
                 messages.append(msg_data)
             if wrapper.child is not None:
                 cur = wrapper.children[wrapper.child]
@@ -832,6 +875,10 @@ class App:
     def edit_user_message(self, chat_uuid: str, msg_id: int, new_content: str) -> bool:
         """Edit a user message by branching."""
         return self.chats.edit_user_message_by_uuid(chat_uuid, msg_id, new_content)
+    def switch_branch(self, chat_uuid: str, msg_id: int, branch_index: int) -> bool:
+        return self.chats.switch_branch_by_uuid(chat_uuid, msg_id, branch_index)
+    def retry_message(self, chat_uuid: str, msg_id: int) -> bool:
+        return self.chats.retry_by_uuid(chat_uuid, msg_id)
     def get_tools_config(self) -> dict:
         """Returns the tools configuration dict."""
         tools = self.cfg.data.get("tools", {})

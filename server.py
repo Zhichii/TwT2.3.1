@@ -221,6 +221,29 @@ def edit_message():
     return jsonify({"success": False, "error": "Cannot edit message"}), 400
 
 
+@app.route('/api/chat/<uuid:chat_uuid>/switch-branch', methods=['POST'])
+def switch_branch(chat_uuid):
+    data = request.get_json()
+    msg_id = data.get('msg_id')
+    branch_index = data.get('branch_index')
+    if msg_id is None or branch_index is None:
+        return jsonify({"success": False, "error": "msg_id and branch_index required"}), 400
+    if chat_app.switch_branch(str(chat_uuid), msg_id, branch_index):
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "Cannot switch branch"}), 400
+
+
+@app.route('/api/chat/<uuid:chat_uuid>/retry', methods=['POST'])
+def retry_message(chat_uuid):
+    data = request.get_json()
+    msg_id = data.get('msg_id')
+    if msg_id is None:
+        return jsonify({"success": False, "error": "msg_id required"}), 400
+    if chat_app.retry_message(str(chat_uuid), msg_id):
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "Cannot retry"}), 400
+
+
 @app.route('/api/system-prompt', methods=['GET'])
 def get_system_prompt():
     return jsonify({"system_prompt": chat_app.get_system_prompt()})
